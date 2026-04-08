@@ -66,6 +66,7 @@ def render_markdown(
         lines.extend(_render_list(kept_references, ordered=True))
         omitted = len(document.references) - len(kept_references)
         if omitted > 0:
+            lines.append("")
             lines.append(f"_{omitted} additional reference(s) omitted for brevity._")
         lines.append("")
 

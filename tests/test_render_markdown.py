@@ -40,15 +40,40 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
         {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"},
     )
 
-    assert markdown.startswith("---\n")
-    assert "source_url: https://en.wikipedia.org/wiki/Andrej_Karpathy" in markdown
-    assert "# Andrej Karpathy" in markdown
-    assert "![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
-    assert "Karpathy in 2024" in markdown
-    assert "## Career" in markdown
-    assert "- OpenAI" in markdown
-    assert "## References" in markdown
-    assert "1. Reference number one." in markdown
+    expected_markdown = "\n".join(
+        [
+            "---",
+            "title: Andrej Karpathy",
+            "source_url: https://en.wikipedia.org/wiki/Andrej_Karpathy",
+            "source_lang: en",
+            "source_type: wikipedia",
+            "retrieved_at: '2026-04-08T00:00:00+00:00'",
+            "page_type: person",
+            "pageid: 12345",
+            "revid: 67890",
+            "---",
+            "",
+            "# Andrej Karpathy",
+            "",
+            "Andrej Karpathy is a computer scientist.[1]",
+            "",
+            "![Andrej Karpathy portrait](./assets/001-infobox.jpg)",
+            "*Karpathy in 2024*",
+            "",
+            "## Career",
+            "",
+            "Karpathy worked at OpenAI and Tesla.",
+            "",
+            "- OpenAI",
+            "- Tesla",
+            "",
+            "## References",
+            "",
+            "1. Reference number one.",
+        ]
+    )
+
+    assert markdown == f"{expected_markdown}\n"
 
 
 def test_render_markdown_compresses_long_reference_lists() -> None:
@@ -62,4 +87,7 @@ def test_render_markdown_compresses_long_reference_lists() -> None:
 
     assert "1. Reference 1" in markdown
     assert "5. Reference 5" in markdown
-    assert "_2 additional reference(s) omitted for brevity._" in markdown
+    assert "Reference 6" not in markdown
+    assert "Reference 7" not in markdown
+    assert "5. Reference 5\n\n_2 additional reference(s) omitted for brevity._" in markdown
+    assert markdown.endswith("\n")
