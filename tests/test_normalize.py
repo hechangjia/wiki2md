@@ -28,12 +28,37 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
 
     assert isinstance(document, Document)
     assert document.title == "Andrej Karpathy"
-    assert document.summary == ["Andrej Karpathy is a Slovak-Canadian computer scientist.[1]"]
+    assert document.summary == [
+        "Andrej Karpathy is a Slovak-Canadian computer scientist.[1]",
+        "He cofounded Eureka Labs and writes about neural networks.",
+    ]
     assert document.references == ["Reference number one."]
-    assert any(isinstance(block, ImageBlock) and block.role == "infobox" for block in document.blocks)
-    assert any(isinstance(block, HeadingBlock) and block.text == "Career" for block in document.blocks)
-    assert any(isinstance(block, ParagraphBlock) and "Tesla" in block.text for block in document.blocks)
-    assert any(isinstance(block, ListBlock) and block.items == ["OpenAI", "Tesla"] for block in document.blocks)
+    assert [block.kind for block in document.blocks] == ["image", "heading", "paragraph", "list"]
+
+    image_block = document.blocks[0]
+    assert isinstance(image_block, ImageBlock)
+    assert image_block.title == "File:Andrej_Karpathy_2024.jpg"
+    assert image_block.alt == "Andrej Karpathy portrait"
+    assert image_block.caption == "Karpathy in 2024"
+    assert image_block.role == "infobox"
+
+    heading_block = document.blocks[1]
+    assert isinstance(heading_block, HeadingBlock)
+    assert heading_block.level == 2
+    assert heading_block.text == "Career"
+
+    paragraph_block = document.blocks[2]
+    assert isinstance(paragraph_block, ParagraphBlock)
+    assert paragraph_block.text == "Karpathy worked at OpenAI and Tesla."
+
+    list_block = document.blocks[3]
+    assert isinstance(list_block, ListBlock)
+    assert list_block.ordered is False
+    assert list_block.items == ["OpenAI", "Tesla"]
+    assert all(
+        not (isinstance(block, HeadingBlock) and block.text == "References")
+        for block in document.blocks
+    )
 
 
 def test_normalize_article_preserves_chinese_text() -> None:
@@ -55,6 +80,18 @@ def test_normalize_article_preserves_chinese_text() -> None:
     document = normalize_article(article)
 
     assert document.title == "艾伦·图灵"
-    assert document.summary == ["艾伦·图灵 是英国数学家、计算机科学先驱。"]
-    assert any(isinstance(block, HeadingBlock) and block.text == "生平" for block in document.blocks)
-    assert any(isinstance(block, ParagraphBlock) and "密码分析" in block.text for block in document.blocks)
+    assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。[1]"]
+    assert document.references == ["图灵传记资料。"]
+    assert [block.kind for block in document.blocks] == ["heading", "paragraph"]
+
+    heading_block = document.blocks[0]
+    assert isinstance(heading_block, HeadingBlock)
+    assert heading_block.text == "生平"
+
+    paragraph_block = document.blocks[1]
+    assert isinstance(paragraph_block, ParagraphBlock)
+    assert paragraph_block.text == "图灵在第二次世界大战期间参与密码分析工作。"
+    assert all(
+        not (isinstance(block, HeadingBlock) and block.text == "参考文献")
+        for block in document.blocks
+    )
