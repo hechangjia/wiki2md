@@ -63,6 +63,16 @@ def test_reject_chinese_unsupported_namespace() -> None:
         resolve_wikipedia_url("https://zh.wikipedia.org/wiki/分类:机器学习")
 
 
+def test_reject_traditional_chinese_unsupported_namespace() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/分類:機器學習")
+
+
 def test_reject_chinese_disambiguation_page() -> None:
     with pytest.raises(UnsupportedPageError):
         resolve_wikipedia_url("https://zh.wikipedia.org/wiki/艾伦·图灵_(消歧义)")
+
+
+def test_reject_traditional_chinese_disambiguation_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/艾倫·圖靈_(消歧義)")
