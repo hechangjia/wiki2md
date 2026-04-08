@@ -29,10 +29,13 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
     assert isinstance(document, Document)
     assert document.title == "Andrej Karpathy"
     assert document.summary == [
-        "Andrej Karpathy is a Slovak-Canadian computer scientist.[1]",
+        "Andrej Karpathy is a Slovak-Canadian computer scientist.[note 1]",
         "He cofounded Eureka Labs and writes about neural networks.",
     ]
-    assert document.references == ["Reference number one."]
+    assert document.references == [
+        "Reference number one.",
+        "Reference number two in paragraph form.",
+    ]
     assert [block.kind for block in document.blocks] == ["image", "heading", "paragraph", "list"]
 
     image_block = document.blocks[0]
@@ -57,6 +60,14 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
     assert list_block.items == ["OpenAI", "Tesla"]
     assert all(
         not (isinstance(block, HeadingBlock) and block.text == "References")
+        for block in document.blocks
+    )
+    assert "Reference number two in paragraph form." not in " ".join(document.summary)
+    assert all(
+        not (
+            isinstance(block, ParagraphBlock)
+            and block.text == "Reference number two in paragraph form."
+        )
         for block in document.blocks
     )
 

@@ -21,7 +21,7 @@ REFERENCE_HEADINGS = {
 }
 
 _CJK_CHAR_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
-_REFERENCE_MARKER_RE = re.compile(r"\[\d+\]")
+_REFERENCE_MARKER_RE = re.compile(r"\[[^\[\]]+\]")
 _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
 
@@ -108,6 +108,8 @@ def normalize_article(article: FetchedArticle) -> Document:
     in_lead = True
     for node in body.find_all(["h2", "h3", "p", "ul", "ol", "figure"], recursive=True):
         if node.find_parent("table", class_="infobox") is not None:
+            continue
+        if node.find_parent("ol", class_="references") is not None:
             continue
 
         if node.name == "p":
