@@ -2,7 +2,6 @@ from typer.testing import CliRunner
 
 from wiki2md.cli import app
 
-
 runner = CliRunner()
 
 
