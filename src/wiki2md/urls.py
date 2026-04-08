@@ -13,10 +13,13 @@ UNSUPPORTED_NAMESPACES = (
     "Category:",
     "分类:",
     "分類:",
+    "帮助:",
+    "幫助:",
     "Help:",
     "Portal:",
     "Special:",
     "Talk:",
+    "模板:",
     "Template:",
     "Wikipedia:",
 )
@@ -25,6 +28,7 @@ UNSUPPORTED_TITLE_PREFIXES = (
     "List_of_",
     "Timeline_of_",
 )
+ZH_UNSUPPORTED_TITLE_SUFFIXES = ("列表", "时间线", "時間線")
 
 DISAMBIGUATION_SUFFIX = "_(disambiguation)"
 ZH_DISAMBIGUATION_SUFFIX = "_(消歧义)"
@@ -65,6 +69,9 @@ def resolve_wikipedia_url(url: str) -> UrlResolution:
             ZH_TRADITIONAL_DISAMBIGUATION_SUFFIX,
         )
     ):
+        raise UnsupportedPageError(f"Unsupported page type: {title}")
+
+    if title.endswith(ZH_UNSUPPORTED_TITLE_SUFFIXES):
         raise UnsupportedPageError(f"Unsupported page type: {title}")
 
     normalized_title = title.replace(" ", "_")

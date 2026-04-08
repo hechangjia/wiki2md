@@ -68,6 +68,21 @@ def test_reject_traditional_chinese_unsupported_namespace() -> None:
         resolve_wikipedia_url("https://zh.wikipedia.org/wiki/分類:機器學習")
 
 
+def test_reject_chinese_help_namespace() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/帮助:目录")
+
+
+def test_reject_traditional_chinese_help_namespace() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/幫助:目錄")
+
+
+def test_reject_chinese_template_namespace() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/模板:信息框")
+
+
 def test_reject_chinese_disambiguation_page() -> None:
     with pytest.raises(UnsupportedPageError):
         resolve_wikipedia_url("https://zh.wikipedia.org/wiki/艾伦·图灵_(消歧义)")
@@ -76,3 +91,18 @@ def test_reject_chinese_disambiguation_page() -> None:
 def test_reject_traditional_chinese_disambiguation_page() -> None:
     with pytest.raises(UnsupportedPageError):
         resolve_wikipedia_url("https://zh.wikipedia.org/wiki/艾倫·圖靈_(消歧義)")
+
+
+def test_reject_chinese_list_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/机器学习列表")
+
+
+def test_reject_chinese_timeline_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/机器学习时间线")
+
+
+def test_reject_traditional_chinese_timeline_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/機器學習時間線")
