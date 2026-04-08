@@ -1,0 +1,10 @@
+{
+  "id": 12345,
+  "key": "Andrej_Karpathy",
+  "title": "Andrej Karpathy",
+  "latest": {
+    "id": 67890,
+    "timestamp": "2026-04-08T00:00:00Z"
+  },
+  "html_url": "https://en.wikipedia.org/w/rest.php/v1/page/Andrej_Karpathy/html"
+}

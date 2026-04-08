@@ -1,0 +1,22 @@
+{
+  "files": [
+    {
+      "title": "File:Andrej_Karpathy_2024.jpg",
+      "original": {
+        "mimetype": "image/jpeg",
+        "url": "https://upload.wikimedia.org/example/andrej-karpathy.jpg"
+      },
+      "thumbnail": {
+        "mimetype": "image/jpeg",
+        "url": "https://upload.wikimedia.org/example/andrej-karpathy-thumb.jpg"
+      }
+    },
+    {
+      "title": "File:Audio.svg",
+      "original": {
+        "mimetype": "image/svg+xml",
+        "url": "https://upload.wikimedia.org/example/audio.svg"
+      }
+    }
+  ]
+}
