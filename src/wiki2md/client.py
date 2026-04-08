@@ -99,6 +99,14 @@ class MediaWikiClient:
             return value
         raise FetchError(f"Invalid section '{field}' in {context}: expected object")
 
+    def _optional_string(self, payload: Mapping[str, Any], field: str, context: str) -> str | None:
+        value = payload.get(field)
+        if value is None:
+            return None
+        if isinstance(value, str):
+            return value
+        raise FetchError(f"Invalid field '{field}' in {context}: expected string")
+
     def fetch_article(self, resolution: UrlResolution) -> FetchedArticle:
         title = quote(resolution.title, safe=":_()")
         base_url = self._base_url(resolution.lang)
@@ -110,7 +118,9 @@ class MediaWikiClient:
         html = self._get_text(html_url, "article HTML")
         media_payload = self._get_json(media_url, "media links")
 
-        files = media_payload.get("files", [])
+        if "files" not in media_payload:
+            raise FetchError(f"Missing required field 'files' in media links from {media_url}")
+        files = media_payload["files"]
         if not isinstance(files, list):
             raise FetchError(
                 f"Invalid section 'files' in media links from {media_url}: expected list"
@@ -125,8 +135,8 @@ class MediaWikiClient:
             item_context = f"media links from {media_url} at files[{index}]"
             original = self._optional_section(item, "original", item_context)
             thumbnail = self._optional_section(item, "thumbnail", item_context)
-            original_url = original.get("url")
-            thumbnail_url = thumbnail.get("url")
+            original_url = self._optional_string(original, "url", f"{item_context}.original")
+            thumbnail_url = self._optional_string(thumbnail, "url", f"{item_context}.thumbnail")
             mime_type = original.get("mimetype") or thumbnail.get("mimetype")
             media_items.append(
                 MediaItem(
@@ -171,11 +181,17 @@ class MediaWikiClient:
         payload = self._get_json(file_url, "file metadata")
         original = self._optional_section(payload, "original", f"file metadata from {file_url}")
         thumbnail = self._optional_section(payload, "thumbnail", f"file metadata from {file_url}")
+        original_url = self._optional_string(
+            original, "url", f"file metadata from {file_url}.original"
+        )
+        thumbnail_url = self._optional_string(
+            thumbnail, "url", f"file metadata from {file_url}.thumbnail"
+        )
         mime_type = original.get("mimetype") or thumbnail.get("mimetype")
 
         return MediaItem(
             title=self._require_string(payload, "title", f"file metadata from {file_url}"),
-            original_url=_normalize_media_url(original.get("url")),
-            thumbnail_url=_normalize_media_url(thumbnail.get("url")),
+            original_url=_normalize_media_url(original_url),
+            thumbnail_url=_normalize_media_url(thumbnail_url),
             mime_type=mime_type if isinstance(mime_type, str) else None,
         )

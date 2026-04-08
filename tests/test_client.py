@@ -120,3 +120,70 @@ def test_fetch_article_raises_fetch_error_on_invalid_json() -> None:
         MediaWikiClient(user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)").fetch_article(
             resolution
         )
+
+
+@respx.mock
+def test_fetch_article_raises_fetch_error_when_media_files_missing() -> None:
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    base = "https://en.wikipedia.org/w/rest.php/v1"
+
+    respx.get(f"{base}/page/Andrej_Karpathy/bare").mock(
+        return_value=httpx.Response(200, json=load_json("andrej_bare.json"))
+    )
+    respx.get(f"{base}/page/Andrej_Karpathy/html").mock(
+        return_value=httpx.Response(200, text=load_text("andrej_html.html"))
+    )
+    respx.get(f"{base}/page/Andrej_Karpathy/links/media").mock(
+        return_value=httpx.Response(200, json={"unexpected": []})
+    )
+
+    with pytest.raises(FetchError, match="files"):
+        MediaWikiClient(user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)").fetch_article(
+            resolution
+        )
+
+
+@respx.mock
+def test_fetch_article_raises_fetch_error_on_non_string_media_url() -> None:
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    base = "https://en.wikipedia.org/w/rest.php/v1"
+
+    respx.get(f"{base}/page/Andrej_Karpathy/bare").mock(
+        return_value=httpx.Response(200, json=load_json("andrej_bare.json"))
+    )
+    respx.get(f"{base}/page/Andrej_Karpathy/html").mock(
+        return_value=httpx.Response(200, text=load_text("andrej_html.html"))
+    )
+    respx.get(f"{base}/page/Andrej_Karpathy/links/media").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "files": [
+                    {
+                        "title": "File:Andrej_Karpathy_2024.jpg",
+                        "original": {
+                            "mimetype": "image/jpeg",
+                            "url": 123,
+                        },
+                    }
+                ]
+            },
+        )
+    )
+
+    with pytest.raises(FetchError, match="url"):
+        MediaWikiClient(user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)").fetch_article(
+            resolution
+        )
