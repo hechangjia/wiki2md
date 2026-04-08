@@ -23,6 +23,16 @@ def test_resolve_chinese_article_url() -> None:
     assert result.slug == "艾伦-图灵"
 
 
+def test_resolve_chinese_article_url_normalizes_title_key() -> None:
+    result = resolve_wikipedia_url(
+        "https://zh.wikipedia.org/wiki/%E8%89%BE%E4%BC%A6%20%E5%9B%BE%E7%81%B5"
+    )
+
+    assert result.lang == "zh"
+    assert result.title == "艾伦_图灵"
+    assert result.slug == "艾伦-图灵"
+
+
 def test_reject_non_wikipedia_host() -> None:
     with pytest.raises(InvalidWikipediaUrlError):
         resolve_wikipedia_url("https://example.com/wiki/Andrej_Karpathy")
@@ -38,6 +48,21 @@ def test_reject_list_page() -> None:
         resolve_wikipedia_url("https://en.wikipedia.org/wiki/List_of_computer_scientists")
 
 
+def test_reject_timeline_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://en.wikipedia.org/wiki/Timeline_of_machine_learning")
+
+
 def test_reject_disambiguation_page() -> None:
     with pytest.raises(UnsupportedPageError):
         resolve_wikipedia_url("https://en.wikipedia.org/wiki/Mercury_(disambiguation)")
+
+
+def test_reject_chinese_unsupported_namespace() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/分类:机器学习")
+
+
+def test_reject_chinese_disambiguation_page() -> None:
+    with pytest.raises(UnsupportedPageError):
+        resolve_wikipedia_url("https://zh.wikipedia.org/wiki/艾伦·图灵_(消歧义)")

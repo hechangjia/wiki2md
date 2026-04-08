@@ -11,6 +11,7 @@ SUPPORTED_HOSTS = {
 
 UNSUPPORTED_NAMESPACES = (
     "Category:",
+    "分类:",
     "Help:",
     "Portal:",
     "Special:",
@@ -25,6 +26,7 @@ UNSUPPORTED_TITLE_PREFIXES = (
 )
 
 DISAMBIGUATION_SUFFIX = "_(disambiguation)"
+ZH_DISAMBIGUATION_SUFFIX = "_(消歧义)"
 
 
 def slugify_title(title: str) -> str:
@@ -54,7 +56,9 @@ def resolve_wikipedia_url(url: str) -> UrlResolution:
     if title.startswith(UNSUPPORTED_NAMESPACES):
         raise UnsupportedPageError(f"Unsupported namespace: {title}")
 
-    if title.startswith(UNSUPPORTED_TITLE_PREFIXES) or title.endswith(DISAMBIGUATION_SUFFIX):
+    if title.startswith(UNSUPPORTED_TITLE_PREFIXES) or title.endswith(
+        (DISAMBIGUATION_SUFFIX, ZH_DISAMBIGUATION_SUFFIX)
+    ):
         raise UnsupportedPageError(f"Unsupported page type: {title}")
 
     normalized_title = title.replace(" ", "_")
@@ -64,6 +68,6 @@ def resolve_wikipedia_url(url: str) -> UrlResolution:
         source_url=url,
         normalized_url=normalized_url,
         lang=lang,
-        title=normalized_title if lang == "en" else title,
+        title=normalized_title,
         slug=slugify_title(title),
     )
