@@ -38,12 +38,33 @@ def _render_list(items: Iterable[ListItem], ordered: bool) -> list[str]:
     return lines
 
 
+def _render_profile(document: Document) -> list[str]:
+    if document.infobox is None or not document.infobox.fields:
+        return []
+
+    lines = ["## Profile", ""]
+    for field in document.infobox.fields:
+        lines.append(f"- {field.label}: {field.text}")
+    lines.append("")
+    return lines
+
+
 def render_markdown(
     document: Document,
     metadata: ArticleMetadata,
     asset_map: dict[str, str],
 ) -> str:
     lines: list[str] = [_render_frontmatter(metadata), "", f"# {document.title}", ""]
+
+    if document.infobox and document.infobox.image:
+        relative_path = asset_map.get(document.infobox.image.title)
+        if relative_path:
+            lines.append(f"![{document.infobox.image.alt}](./{relative_path})")
+            if document.infobox.image.caption:
+                lines.append(f"*{document.infobox.image.caption}*")
+            lines.append("")
+
+    lines.extend(_render_profile(document))
 
     for paragraph in document.summary:
         lines.append(paragraph)

@@ -3,7 +3,9 @@ from datetime import UTC, datetime
 from wiki2md.document import (
     Document,
     HeadingBlock,
-    ImageBlock,
+    InfoboxData,
+    InfoboxField,
+    InfoboxImage,
     ListBlock,
     ListItem,
     ParagraphBlock,
@@ -27,14 +29,25 @@ def build_metadata() -> ArticleMetadata:
 def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
     document = Document(
         title="Andrej Karpathy",
-        summary=["Andrej Karpathy is a computer scientist.[1]"],
-        blocks=[
-            ImageBlock(
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
                 title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
                 alt="Andrej Karpathy portrait",
                 caption="Karpathy in 2024",
-                role="infobox",
             ),
+            fields=[
+                InfoboxField(
+                    label="Born",
+                    text="3 October 1986 Bratislava, Czechoslovakia",
+                    links=[],
+                ),
+                InfoboxField(label="Occupation", text="Computer scientist", links=[]),
+            ],
+        ),
+        summary=["Andrej Karpathy is a computer scientist.[1]"],
+        blocks=[
             HeadingBlock(level=2, text="Career"),
             ParagraphBlock(text="Karpathy worked at OpenAI and Tesla."),
             ListBlock(
@@ -66,10 +79,15 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
             "",
             "# Andrej Karpathy",
             "",
-            "Andrej Karpathy is a computer scientist.[1]",
-            "",
             "![Andrej Karpathy portrait](./assets/001-infobox.jpg)",
             "*Karpathy in 2024*",
+            "",
+            "## Profile",
+            "",
+            "- Born: 3 October 1986 Bratislava, Czechoslovakia",
+            "- Occupation: Computer scientist",
+            "",
+            "Andrej Karpathy is a computer scientist.[1]",
             "",
             "## Career",
             "",
@@ -85,6 +103,70 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
     )
 
     assert markdown == f"{expected_markdown}\n"
+
+
+def test_render_markdown_renders_infobox_image_and_profile_before_summary() -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
+                title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
+                alt="Andrej Karpathy portrait",
+                caption="Karpathy in 2024",
+            ),
+            fields=[
+                InfoboxField(
+                    label="Born",
+                    text="3 October 1986 Bratislava, Czechoslovakia",
+                    links=[],
+                ),
+                InfoboxField(label="Occupation", text="Computer scientist", links=[]),
+            ],
+        ),
+        summary=["Andrej Karpathy is a Slovak-Canadian computer scientist."],
+    )
+
+    markdown = render_markdown(
+        document,
+        build_metadata(),
+        {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"},
+    )
+
+    assert "# Andrej Karpathy\n\n![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
+    assert (
+        "## Profile\n\n"
+        "- Born: 3 October 1986 Bratislava, Czechoslovakia\n"
+        "- Occupation: Computer scientist\n\n"
+        "Andrej Karpathy is a Slovak-Canadian computer scientist."
+    ) in markdown
+
+
+def test_render_markdown_omits_profile_section_when_infobox_has_no_fields() -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
+                title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
+                alt="Andrej Karpathy portrait",
+                caption="Karpathy in 2024",
+            ),
+            fields=[],
+        ),
+        summary=["Andrej Karpathy is a computer scientist."],
+    )
+
+    markdown = render_markdown(
+        document,
+        build_metadata(),
+        {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"},
+    )
+
+    assert "![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
+    assert "## Profile" not in markdown
 
 
 def test_render_markdown_compresses_long_reference_lists() -> None:
