@@ -3,7 +3,7 @@
   "source_url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
   "source_lang": "en",
   "source_type": "wikipedia",
-  "retrieved_at": "2026-04-08T00:00:00+00:00",
+  "retrieved_at": "2026-04-08T00:00:00Z",
   "page_type": "person",
   "pageid": 12345,
   "revid": 67890,
@@ -15,8 +15,10 @@
   ],
   "warnings": [],
   "cleanup_stats": {
-    "blocks": 3,
+    "blocks": 2,
     "references": 1,
-    "images_selected": 1
+    "images_selected": 1,
+    "infobox_fields": 2,
+    "has_infobox": true
   }
 }

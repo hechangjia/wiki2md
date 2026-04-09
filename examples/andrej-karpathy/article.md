@@ -3,7 +3,7 @@ title: Andrej Karpathy
 source_url: https://en.wikipedia.org/wiki/Andrej_Karpathy
 source_lang: en
 source_type: wikipedia
-retrieved_at: 2026-04-08T00:00:00+00:00
+retrieved_at: '2026-04-08T00:00:00+00:00'
 page_type: person
 pageid: 12345
 revid: 67890
@@ -11,8 +11,20 @@ revid: 67890
 
 # Andrej Karpathy
 
+![Andrej Karpathy portrait](./assets/001-infobox.jpg)
+*Karpathy in 2024*
+
+## Profile
+
+- Born: 3 October 1986 Bratislava, Czechoslovakia
+- Occupation: Computer scientist
+
 Andrej Karpathy is a computer scientist.
 
 ## Career
 
 Karpathy worked at OpenAI and Tesla.
+
+## References
+
+1. Sample reference entry for Andrej Karpathy.

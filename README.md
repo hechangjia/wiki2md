@@ -10,7 +10,7 @@ Convert Wikipedia person pages into clean local Markdown artifacts with structur
 
 - English-first Wikipedia support with Chinese article compatibility
 - Person article URLs as the v1 target
-- Local `article.md`, `meta.json`, `references.json`, and `assets/` output
+- Local `article.md`, `meta.json`, `references.json`, `infobox.json`, and `assets/` output
 - MediaWiki REST API as the primary data source
 
 ## Install
@@ -42,6 +42,7 @@ output/
       article.md
       meta.json
       references.json
+      infobox.json
       assets/
 ```
 

@@ -1,6 +1,95 @@
 import json
 import re
+from datetime import UTC, datetime
 from pathlib import Path
+
+from wiki2md.document import (
+    Document,
+    HeadingBlock,
+    InfoboxData,
+    InfoboxField,
+    InfoboxImage,
+    ParagraphBlock,
+    ReferenceEntry,
+    ReferenceLink,
+)
+from wiki2md.models import ArticleMetadata
+from wiki2md.render_markdown import render_markdown
+
+
+def build_example_document() -> Document:
+    return Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
+                title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
+                alt="Andrej Karpathy portrait",
+                caption="Karpathy in 2024",
+            ),
+            fields=[
+                InfoboxField(
+                    label="Born",
+                    text="3 October 1986 Bratislava, Czechoslovakia",
+                    links=[],
+                ),
+                InfoboxField(label="Occupation", text="Computer scientist", links=[]),
+            ],
+        ),
+        summary=["Andrej Karpathy is a computer scientist."],
+        blocks=[
+            HeadingBlock(level=2, text="Career"),
+            ParagraphBlock(text="Karpathy worked at OpenAI and Tesla."),
+        ],
+        references=[
+            ReferenceEntry(
+                id="cite_note-karpathy-profile-1",
+                text="Sample reference entry for Andrej Karpathy.",
+                primary_url="https://example.com/karpathy-profile",
+                links=[
+                    ReferenceLink(
+                        text="Example source",
+                        href="https://example.com/karpathy-profile",
+                        kind="external",
+                    ),
+                    ReferenceLink(
+                        text="Andrej Karpathy",
+                        href="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+                        kind="wiki",
+                    ),
+                ],
+            )
+        ],
+    )
+
+
+def build_example_metadata() -> ArticleMetadata:
+    return ArticleMetadata(
+        title="Andrej Karpathy",
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        source_lang="en",
+        retrieved_at=datetime(2026, 4, 8, tzinfo=UTC),
+        pageid=12345,
+        revid=67890,
+        image_manifest=[
+            {
+                "title": "File:Andrej_Karpathy_2024.jpg",
+                "path": "assets/001-infobox.jpg",
+            }
+        ],
+        cleanup_stats={
+            "blocks": 2,
+            "references": 1,
+            "images_selected": 1,
+            "infobox_fields": 2,
+            "has_infobox": True,
+        },
+    )
+
+
+def build_example_asset_map() -> dict[str, str]:
+    return {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"}
 
 
 def test_readme_mentions_primary_cli_commands() -> None:
@@ -28,29 +117,10 @@ def test_example_references_sidecar_matches_enriched_contract() -> None:
     references = json.loads(
         Path("examples/andrej-karpathy/references.json").read_text(encoding="utf-8")
     )
-    allowed_kinds = {"external", "wiki", "archive", "identifier", "other"}
-    required_entry_keys = {"id", "text", "primary_url", "links"}
-    required_link_keys = {"text", "href", "kind"}
 
-    assert isinstance(references, list)
-    assert references
-
-    first = references[0]
-    assert required_entry_keys.issubset(first)
-    assert isinstance(first["text"], str)
-    assert isinstance(first["links"], list)
-
-    for entry in references:
-        assert required_entry_keys.issubset(entry)
-        assert entry["id"] is None or isinstance(entry["id"], str)
-        assert isinstance(entry["text"], str)
-        assert entry["primary_url"] is None or isinstance(entry["primary_url"], str)
-        assert isinstance(entry["links"], list)
-        for link in entry["links"]:
-            assert required_link_keys.issubset(link)
-            assert isinstance(link["text"], str)
-            assert isinstance(link["href"], str)
-            assert link["kind"] in allowed_kinds
+    assert references == [
+        reference.model_dump(mode="json") for reference in build_example_document().references
+    ]
 
 
 def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
@@ -58,6 +128,11 @@ def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
 
     assert "infobox.json" in readme
     assert "## Profile" in readme
+    assert "      infobox.json" in readme
+    assert (
+        "Local `article.md`, `meta.json`, `references.json`, `infobox.json`, and `assets/` output"
+        in readme
+    )
 
 
 def test_example_infobox_sidecar_matches_contract() -> None:
@@ -65,7 +140,23 @@ def test_example_infobox_sidecar_matches_contract() -> None:
         Path("examples/andrej-karpathy/infobox.json").read_text(encoding="utf-8")
     )
 
-    assert payload["title"] == "Andrej Karpathy"
-    assert isinstance(payload.get("fields"), list)
-    assert payload["fields"]
-    assert {"label", "text", "links"}.issubset(payload["fields"][0])
+    assert payload == build_example_document().infobox.model_dump(mode="json")
+
+
+def test_example_article_matches_renderer_output() -> None:
+    article = Path("examples/andrej-karpathy/article.md").read_text(encoding="utf-8")
+    expected = render_markdown(
+        build_example_document(),
+        build_example_metadata(),
+        build_example_asset_map(),
+    )
+
+    assert article == expected
+
+
+def test_example_meta_matches_serialized_metadata() -> None:
+    payload = json.loads(
+        Path("examples/andrej-karpathy/meta.json").read_text(encoding="utf-8")
+    )
+
+    assert payload == build_example_metadata().model_dump(mode="json")
