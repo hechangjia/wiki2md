@@ -8,9 +8,10 @@ from wiki2md.document import (
     ListItem,
     ParagraphBlock,
     ReferenceEntry,
+    ReferenceLink,
 )
 from wiki2md.models import FetchedArticle, UrlResolution
-from wiki2md.normalize import normalize_article
+from wiki2md.normalize import _select_primary_url, normalize_article
 
 FIXTURE = Path(__file__).parent / "fixtures" / "html" / "person_fragment.html"
 FIXTURE_ZH = Path(__file__).parent / "fixtures" / "html" / "person_fragment_zh.html"
@@ -443,3 +444,87 @@ def test_normalize_article_classifies_reference_links_and_selects_primary_url() 
             ],
         }
     ]
+
+
+def test_normalize_article_excludes_fragment_only_reference_links() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <h2>References</h2>
+              <ol class="references">
+                <li id="cite_note-example-1">
+                  <cite>
+                    <a href="#cite_note-example-1">self anchor</a>
+                    <a href="./Geoffrey_Hinton#cite_note-example-2">note anchor</a>
+                    <a href="https://example.com/source">Example source</a>
+                  </cite>
+                </li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [reference.model_dump(mode="json") for reference in document.references] == [
+        {
+            "id": "cite_note-example-1",
+            "text": "self anchor note anchor Example source",
+            "primary_url": "https://example.com/source",
+            "links": [
+                {
+                    "text": "Example source",
+                    "href": "https://example.com/source",
+                    "kind": "external",
+                }
+            ],
+        }
+    ]
+
+
+def test_select_primary_url_prefers_archive_when_external_missing() -> None:
+    links = [
+        ReferenceLink(
+            text="Archived copy",
+            href="https://archive.org/details/example-source",
+            kind="archive",
+        ),
+        ReferenceLink(
+            text="10.1000/example",
+            href="https://doi.org/10.1000/example",
+            kind="identifier",
+        ),
+    ]
+
+    assert _select_primary_url(links) == "https://archive.org/details/example-source"
+
+
+def test_select_primary_url_uses_identifier_when_best_available() -> None:
+    links = [
+        ReferenceLink(
+            text="10.1000/example",
+            href="https://doi.org/10.1000/example",
+            kind="identifier",
+        ),
+        ReferenceLink(
+            text="Wikipedia entry",
+            href="https://en.wikipedia.org/wiki/DOI",
+            kind="wiki",
+        ),
+    ]
+
+    assert _select_primary_url(links) == "https://doi.org/10.1000/example"

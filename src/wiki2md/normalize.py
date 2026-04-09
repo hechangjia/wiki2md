@@ -126,7 +126,7 @@ def _extract_reference_links(node: Tag, article: FetchedArticle) -> list[Referen
     for anchor in node.find_all("a", href=True):
         href = anchor.get("href", "")
         text = _clean_text(anchor)
-        if not href or not text or "cite_ref" in href:
+        if not href or not text or _is_reference_anchor_href(href):
             continue
         normalized_href = _normalize_href(article, href)
         links.append(
@@ -138,6 +138,17 @@ def _extract_reference_links(node: Tag, article: FetchedArticle) -> list[Referen
         )
 
     return links
+
+
+def _is_reference_anchor_href(href: str) -> bool:
+    if "cite_ref" in href:
+        return True
+
+    parsed = urlparse(href)
+    fragment = parsed.fragment.casefold()
+    if href.startswith("#"):
+        return True
+    return fragment.startswith("cite_")
 
 
 def _classify_reference_link(
