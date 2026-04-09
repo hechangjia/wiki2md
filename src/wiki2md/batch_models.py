@@ -30,3 +30,40 @@ class PlannedBatchTask(BaseModel):
 class DuplicateBatchEntry(BaseModel):
     entry: BatchManifestEntry
     reason: Literal["duplicate_url", "duplicate_output_dir"]
+
+
+class BatchRunConfig(BaseModel):
+    concurrency: int = 4
+    overwrite: bool = False
+    skip_invalid: bool = False
+    max_retries: int = 2
+
+
+BatchEntryStatus = Literal[
+    "pending",
+    "success",
+    "failed",
+    "skipped_existing",
+    "invalid",
+    "duplicate",
+]
+
+
+class BatchStateEntry(BaseModel):
+    entry_key: str
+    url: str
+    status: BatchEntryStatus
+    relative_output_dir: str | None = None
+    output_dir: str | None = None
+    manifest_entry: BatchManifestEntry | None = None
+    error: str | None = None
+
+
+class BatchRunResult(BaseModel):
+    batch_id: str
+    manifest_path: str
+    output_root: str
+    config: BatchRunConfig
+    totals: dict[str, int]
+    entries: list[BatchStateEntry] = Field(default_factory=list)
+    invalid_rows: list[InvalidManifestRow] = Field(default_factory=list)
