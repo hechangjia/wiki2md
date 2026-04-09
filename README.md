@@ -52,10 +52,54 @@ output/
 wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 ```
 
-`batch` reads one URL per line and ignores empty lines plus `#` comments:
+## Batch Processing
+
+`batch` supports both plain `txt` URL lists and structured `jsonl` manifests.
+
+`txt` mode reads one URL per non-empty line and ignores `#` comments:
 
 ```bash
 wiki2md batch urls.txt --output-dir output
+```
+
+`jsonl` mode supports per-row metadata (`page_type`, `slug`, `tags`, `output_group`):
+
+```bash
+wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+```
+
+Example `jsonl` row:
+
+```json
+{"url":"https://en.wikipedia.org/wiki/Andrej_Karpathy","page_type":"person","slug":"andrej-karpathy","tags":["ai","person"],"output_group":"people-ai"}
+```
+
+Useful flags:
+- `--output-dir`: choose output root (default `output`)
+- `--overwrite`: re-run even when target output exists
+- `--concurrency`: set worker count (default `4`)
+- `--skip-invalid`: skip bad manifest rows instead of failing strict validation
+- `--resume`: resume from an explicit state file
+
+Resume usage:
+
+```bash
+wiki2md batch examples/batch/person-manifest.jsonl \
+  --output-dir output \
+  --resume output/.wiki2md/batches/<batch-id>/state.json
+```
+
+Batch artifacts are written under `output/.wiki2md/batches/`:
+- `state.json`: resumable execution state
+- `batch-report.json`: full run summary and per-entry outcomes
+- `failed.txt`: failed URLs for quick review
+- `failed.jsonl`: failed manifest rows (preferred retry input)
+- `invalid.jsonl`: invalid manifest rows (only when invalid rows exist)
+
+Retry failed rows directly:
+
+```bash
+wiki2md batch output/.wiki2md/batches/<batch-id>/failed.jsonl --output-dir output
 ```
 
 See `examples/andrej-karpathy/` for a sample artifact set.

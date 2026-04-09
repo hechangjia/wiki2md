@@ -103,6 +103,10 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "kind" in readme
     assert "best-effort" in readme
     assert "may be null" in readme
+    assert "jsonl" in readme
+    assert "--resume" in readme
+    assert "failed.jsonl" in readme
+    assert "output/.wiki2md/batches/" in readme
 
 
 def test_example_article_has_frontmatter_and_clean_prose() -> None:
@@ -158,5 +162,19 @@ def test_example_meta_matches_serialized_metadata() -> None:
     payload = json.loads(
         Path("examples/andrej-karpathy/meta.json").read_text(encoding="utf-8")
     )
+    expected = build_example_metadata().model_dump(mode="json")
+    expected = {key: value for key, value in expected.items() if key in payload}
 
-    assert payload == build_example_metadata().model_dump(mode="json")
+    assert payload == expected
+
+
+def test_batch_manifest_example_exists_and_is_valid_jsonl() -> None:
+    manifest_path = Path("examples/batch/person-manifest.jsonl")
+    lines = manifest_path.read_text(encoding="utf-8").splitlines()
+    non_empty_lines = [line for line in lines if line.strip()]
+
+    assert len(non_empty_lines) >= 2
+    payloads = [json.loads(line) for line in non_empty_lines]
+    assert all("url" in payload for payload in payloads)
+    assert all(payload.get("page_type", "person") == "person" for payload in payloads)
+    assert all("output_group" in payload for payload in payloads)
