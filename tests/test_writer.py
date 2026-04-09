@@ -63,6 +63,10 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
     assert references_payload == [
         {"id": None, "text": "Reference number one.", "primary_url": None, "links": []}
     ]
+    infobox_payload = json.loads(
+        (Path(result.output_dir) / "infobox.json").read_text(encoding="utf-8")
+    )
+    assert infobox_payload == {"title": "Andrej Karpathy", "image": None, "fields": []}
 
 
 def test_write_bundle_serializes_reference_primary_urls(tmp_path: Path) -> None:

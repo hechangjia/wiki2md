@@ -51,10 +51,8 @@ def write_bundle(
         encoding="utf-8",
     )
     infobox_payload = (
-        infobox.model_dump(mode="json")
-        if infobox is not None
-        else {"title": metadata.title, "image": None, "fields": []}
-    )
+        infobox if infobox is not None else InfoboxData(title=metadata.title)
+    ).model_dump(mode="json")
     infobox_path.write_text(
         json.dumps(infobox_payload, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
