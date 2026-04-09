@@ -3,6 +3,8 @@ from pathlib import Path
 
 import typer
 
+from wiki2md.batch_models import BatchRunConfig
+from wiki2md.batch_runtime import run_batch
 from wiki2md.client import MediaWikiClient
 from wiki2md.service import Wiki2MdService
 
@@ -62,19 +64,32 @@ def batch(
     file: Path,
     output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir"),
     overwrite: bool = typer.Option(False, "--overwrite"),
+    concurrency: int = typer.Option(4, "--concurrency"),
+    resume: Path | None = typer.Option(None, "--resume"),
+    skip_invalid: bool = typer.Option(False, "--skip-invalid"),
 ) -> None:
-    """Process a text file containing one Wikipedia URL per line."""
-    service = build_service(output_dir)
-    processed = 0
+    """Process batch manifest files (txt/jsonl) via the batch runtime."""
+    config = BatchRunConfig(
+        concurrency=concurrency,
+        overwrite=overwrite,
+        skip_invalid=skip_invalid,
+        max_retries=2,
+    )
+    result = run_batch(
+        manifest_path=file,
+        output_root=output_dir,
+        service_factory=lambda: build_service(output_dir),
+        config=config,
+        resume_path=resume,
+    )
 
-    try:
-        for raw_line in file.read_text(encoding="utf-8").splitlines():
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-            service.convert_url(line, overwrite=overwrite)
-            processed += 1
-    finally:
-        _close_service(service)
+    printable_statuses = {"success", "failed", "skipped_existing", "invalid", "duplicate"}
+    for entry in result.entries:
+        if entry.status not in printable_statuses:
+            continue
+        line = f"{entry.status.upper()} {entry.url}".rstrip()
+        if entry.error:
+            line = f"{line} | {entry.error}"
+        typer.echo(line)
 
-    typer.echo(f"Processed {processed} URL(s).")
+    typer.echo(f"Summary: {json.dumps(result.totals, ensure_ascii=False)}")
