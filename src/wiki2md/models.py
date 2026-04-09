@@ -16,6 +16,16 @@ class UrlResolution(BaseModel):
     slug: str
 
 
+class ConversionContext(BaseModel):
+    relative_output_dir: str
+    page_type: str = "person"
+    output_group: str | None = None
+    manifest_slug: str | None = None
+    resolved_slug: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    batch_id: str | None = None
+
+
 class MediaItem(BaseModel):
     title: str
     original_url: str | None = None
@@ -51,6 +61,11 @@ class ArticleMetadata(BaseModel):
     image_manifest: list[dict[str, str]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     cleanup_stats: dict[str, int | bool] = Field(default_factory=dict)
+    output_group: str | None = None
+    manifest_slug: str | None = None
+    resolved_slug: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    batch_id: str | None = None
 
 
 class InspectionResult(BaseModel):

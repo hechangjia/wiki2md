@@ -10,7 +10,7 @@ from wiki2md.document import (
     ReferenceEntry,
     ReferenceLink,
 )
-from wiki2md.models import ConversionResult, SelectedAsset
+from wiki2md.models import ConversionContext, ConversionResult, SelectedAsset
 from wiki2md.service import Wiki2MdService
 
 
@@ -159,3 +159,35 @@ def test_convert_url_backfills_infobox_image_path_from_selected_assets(
         (Path(result.output_dir) / "infobox.json").read_text(encoding="utf-8")
     )
     assert infobox_payload["image"]["path"] == "assets/001-infobox.jpg"
+
+
+def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: Path) -> None:
+    service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(title="Andrej Karpathy", summary=["Example summary."]),
+    )
+    monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
+    monkeypatch.setattr("wiki2md.service.download_assets", lambda assets, destination, user_agent: None)
+    monkeypatch.setattr("wiki2md.service.render_markdown", lambda document, metadata, asset_map: "# Andrej Karpathy\n")
+
+    result = service.convert_url(
+        "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        context=ConversionContext(
+            relative_output_dir="person/people-ai/karpathy-final",
+            page_type="person",
+            output_group="people-ai",
+            manifest_slug="karpathy-manifest",
+            resolved_slug="karpathy-final",
+            tags=["ai", "person"],
+            batch_id="batch-123",
+        ),
+    )
+
+    payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    assert payload["page_type"] == "person"
+    assert payload["output_group"] == "people-ai"
+    assert payload["manifest_slug"] == "karpathy-manifest"
+    assert payload["resolved_slug"] == "karpathy-final"
+    assert payload["tags"] == ["ai", "person"]
+    assert payload["batch_id"] == "batch-123"

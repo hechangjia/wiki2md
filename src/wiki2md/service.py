@@ -6,7 +6,7 @@ from pathlib import Path
 from wiki2md.assets import download_assets, select_assets
 from wiki2md.client import MediaWikiClient
 from wiki2md.document import Document
-from wiki2md.models import ArticleMetadata, ConversionResult, InspectionResult
+from wiki2md.models import ArticleMetadata, ConversionContext, ConversionResult, InspectionResult
 from wiki2md.normalize import normalize_article
 from wiki2md.render_markdown import render_markdown
 from wiki2md.urls import resolve_wikipedia_url
@@ -49,13 +49,24 @@ class Wiki2MdService:
             media_count=len(article.media),
         )
 
-    def convert_url(self, url: str, overwrite: bool = False) -> ConversionResult:
+    def convert_url(
+        self,
+        url: str,
+        overwrite: bool = False,
+        context: ConversionContext | None = None,
+    ) -> ConversionResult:
         resolution = resolve_wikipedia_url(url)
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
         selected_assets = select_assets(document, article.media)
         asset_map = {asset.title: asset.relative_path for asset in selected_assets}
         document = _with_infobox_asset_paths(document, asset_map)
+
+        relative_output_dir = Path("people") / resolution.slug
+        resolved_slug = resolution.slug
+        if context is not None:
+            relative_output_dir = Path(context.relative_output_dir)
+            resolved_slug = context.resolved_slug or resolved_slug
 
         staging_root = Path(tempfile.mkdtemp(prefix="wiki2md-"))
         staging_assets_dir = staging_root / "assets"
@@ -70,6 +81,7 @@ class Wiki2MdService:
                 retrieved_at=datetime.now(UTC),
                 pageid=article.pageid,
                 revid=article.revid,
+                page_type=context.page_type if context is not None else "person",
                 image_manifest=[
                     {"title": asset.title, "path": asset.relative_path} for asset in selected_assets
                 ],
@@ -81,6 +93,11 @@ class Wiki2MdService:
                     "infobox_fields": len(document.infobox.fields) if document.infobox else 0,
                     "has_infobox": document.infobox is not None,
                 },
+                output_group=context.output_group if context is not None else None,
+                manifest_slug=context.manifest_slug if context is not None else None,
+                resolved_slug=resolved_slug,
+                tags=list(context.tags) if context is not None else [],
+                batch_id=context.batch_id if context is not None else None,
             )
             markdown = render_markdown(
                 document,
@@ -90,6 +107,7 @@ class Wiki2MdService:
 
             return write_bundle(
                 output_root=self.output_root,
+                relative_output_dir=relative_output_dir,
                 resolution=resolution,
                 markdown=markdown,
                 metadata=metadata,

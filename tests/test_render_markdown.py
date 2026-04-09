@@ -198,6 +198,30 @@ def test_render_markdown_skips_profile_for_non_person_pages() -> None:
     assert "## Profile" not in markdown
 
 
+def test_render_markdown_includes_batch_frontmatter_fields() -> None:
+    metadata = build_metadata().model_copy(
+        update={
+            "output_group": "people-ai",
+            "manifest_slug": "karpathy-manifest",
+            "resolved_slug": "karpathy-final",
+            "tags": ["ai", "person"],
+            "batch_id": "batch-123",
+        }
+    )
+    markdown = render_markdown(
+        Document(title="Andrej Karpathy", summary=["Example summary."]),
+        metadata,
+        {},
+    )
+
+    assert "output_group: people-ai" in markdown
+    assert "manifest_slug: karpathy-manifest" in markdown
+    assert "resolved_slug: karpathy-final" in markdown
+    assert "tags:" in markdown
+    assert "- ai" in markdown
+    assert "batch_id: batch-123" in markdown
+
+
 def test_render_markdown_uses_infobox_image_path_fallback_and_avoids_duplicate_infobox_blocks(
 ) -> None:
     document = Document(

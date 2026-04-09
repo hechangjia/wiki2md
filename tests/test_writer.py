@@ -40,6 +40,7 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
 
     result = write_bundle(
         output_root=tmp_path / "output",
+        relative_output_dir=Path("people") / resolution.slug,
         resolution=resolution,
         markdown="# Andrej Karpathy\n",
         metadata=metadata,
@@ -68,6 +69,43 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
     )
     assert infobox_payload == {"title": "Andrej Karpathy", "image": None, "fields": []}
 
+def test_write_bundle_uses_custom_relative_output_dir(tmp_path: Path) -> None:
+    staging_assets = tmp_path / "staging-assets"
+    staging_assets.mkdir()
+
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    metadata = ArticleMetadata(
+        title="Andrej Karpathy",
+        source_url=resolution.source_url,
+        source_lang="en",
+        retrieved_at=datetime(2026, 4, 9, tzinfo=UTC),
+        page_type="person",
+        output_group="people-ai",
+        manifest_slug="karpathy-manifest",
+        resolved_slug="karpathy-final",
+        tags=["ai", "person"],
+        batch_id="batch-123",
+    )
+
+    result = write_bundle(
+        output_root=tmp_path / "output",
+        relative_output_dir=Path("person/people-ai/karpathy-final"),
+        resolution=resolution,
+        markdown="# Andrej Karpathy\n",
+        metadata=metadata,
+        references=[],
+        infobox=None,
+        staging_assets_dir=staging_assets,
+        overwrite=False,
+    )
+
+    assert Path(result.output_dir) == tmp_path / "output" / "person" / "people-ai" / "karpathy-final"
 
 def test_write_bundle_serializes_reference_primary_urls(tmp_path: Path) -> None:
     staging_assets = tmp_path / "staging-assets"
@@ -87,6 +125,7 @@ def test_write_bundle_serializes_reference_primary_urls(tmp_path: Path) -> None:
     )
     result = write_bundle(
         output_root=tmp_path / "output",
+        relative_output_dir=Path("people") / resolution.slug,
         resolution=resolution,
         markdown="# Andrej Karpathy\n",
         metadata=metadata,
@@ -149,6 +188,7 @@ def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path)
     with pytest.raises(WriteError):
         write_bundle(
             output_root=output_root,
+            relative_output_dir=Path("people") / resolution.slug,
             resolution=resolution,
             markdown="# Andrej Karpathy\n",
             metadata=metadata,
@@ -188,6 +228,7 @@ def test_write_bundle_writes_infobox_sidecar(tmp_path: Path) -> None:
 
     result = write_bundle(
         output_root=tmp_path / "output",
+        relative_output_dir=Path("people") / resolution.slug,
         resolution=resolution,
         markdown="# Andrej Karpathy\n",
         metadata=metadata,

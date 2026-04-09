@@ -9,6 +9,7 @@ from wiki2md.models import ArticleMetadata, ConversionResult, UrlResolution
 
 def write_bundle(
     output_root: Path,
+    relative_output_dir: Path,
     resolution: UrlResolution,
     markdown: str,
     metadata: ArticleMetadata,
@@ -17,8 +18,8 @@ def write_bundle(
     staging_assets_dir: Path,
     overwrite: bool,
 ) -> ConversionResult:
-    final_dir = output_root / "people" / resolution.slug
-    temp_dir = output_root / ".tmp" / resolution.slug
+    final_dir = output_root / relative_output_dir
+    temp_dir = output_root / ".tmp" / relative_output_dir
 
     if final_dir.exists():
         if not overwrite:
