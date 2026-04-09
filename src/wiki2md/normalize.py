@@ -49,8 +49,6 @@ def _needs_space(previous: str, current: str) -> bool:
     prev_char = previous[-1]
     curr_char = current[0]
 
-    if _REFERENCE_MARKER_RE.fullmatch(current):
-        return False
     if curr_char in _RIGHT_ATTACHED_CHARS:
         return False
     if prev_char in _LEFT_ATTACHED_CHARS:
@@ -93,7 +91,7 @@ def _clean_prose_text(node: Tag) -> str:
     if clone is None:
         return ""
 
-    for reference in clone.select("sup.reference, sup.mw-ref, [rel='dc:references']"):
+    for reference in clone.select("sup.reference, sup.mw-ref, [rel~='dc:references']"):
         reference.decompose()
 
     return _clean_text(clone)

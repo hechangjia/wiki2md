@@ -247,6 +247,34 @@ def test_normalize_article_preserves_bracketed_numbers_without_reference_nodes()
     assert document.summary == ["The model uses layer [1] for initialization."]
 
 
+def test_normalize_article_preserves_bracketed_numbers_in_inline_nodes() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Layer",
+            normalized_url="https://en.wikipedia.org/wiki/Layer",
+            lang="en",
+            title="Layer",
+            slug="layer",
+        ),
+        canonical_title="Layer",
+        html="""
+        <html>
+          <head><title>Layer</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>The model uses layer <i>[1]</i> for initialization.</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["The model uses layer [1] for initialization."]
+
+
 def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
