@@ -1,7 +1,14 @@
 import json
 from pathlib import Path
 
-from wiki2md.document import Document, ParagraphBlock, ReferenceEntry, ReferenceLink
+from wiki2md.document import (
+    Document,
+    InfoboxData,
+    InfoboxField,
+    ParagraphBlock,
+    ReferenceEntry,
+    ReferenceLink,
+)
 from wiki2md.models import ConversionResult
 from wiki2md.service import Wiki2MdService
 
@@ -29,6 +36,17 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
         "wiki2md.service.normalize_article",
         lambda article: Document(
             title="Andrej Karpathy",
+            infobox=InfoboxData(
+                title="Andrej Karpathy",
+                image=None,
+                fields=[
+                    InfoboxField(
+                        label="Occupation",
+                        text="Computer scientist",
+                        links=[],
+                    )
+                ],
+            ),
             summary=["Andrej Karpathy is a computer scientist."],
             blocks=[ParagraphBlock(text="Karpathy worked at OpenAI.")],
             references=[
@@ -65,6 +83,7 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
     assert isinstance(result, ConversionResult)
     assert Path(result.article_path).exists()
     assert Path(result.references_path).exists()
+    assert (Path(result.output_dir) / "infobox.json").exists()
     assert json.loads(Path(result.references_path).read_text(encoding="utf-8")) == [
         {
             "id": "cite_note-example-1",
@@ -79,4 +98,11 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
             ],
         }
     ]
+    assert json.loads(Path(result.meta_path).read_text(encoding="utf-8"))["cleanup_stats"] == {
+        "blocks": 1,
+        "references": 1,
+        "images_selected": 0,
+        "infobox_fields": 1,
+        "has_infobox": True,
+    }
     assert result.asset_count == 0

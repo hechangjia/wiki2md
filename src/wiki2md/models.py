@@ -50,7 +50,7 @@ class ArticleMetadata(BaseModel):
     revid: int | None = None
     image_manifest: list[dict[str, str]] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
-    cleanup_stats: dict[str, int] = Field(default_factory=dict)
+    cleanup_stats: dict[str, int | bool] = Field(default_factory=dict)
 
 
 class InspectionResult(BaseModel):

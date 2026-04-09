@@ -2,7 +2,7 @@ import json
 import shutil
 from pathlib import Path
 
-from wiki2md.document import ReferenceEntry
+from wiki2md.document import InfoboxData, ReferenceEntry
 from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, ConversionResult, UrlResolution
 
@@ -13,6 +13,7 @@ def write_bundle(
     markdown: str,
     metadata: ArticleMetadata,
     references: list[ReferenceEntry],
+    infobox: InfoboxData | None,
     staging_assets_dir: Path,
     overwrite: bool,
 ) -> ConversionResult:
@@ -32,6 +33,7 @@ def write_bundle(
     article_path = temp_dir / "article.md"
     meta_path = temp_dir / "meta.json"
     references_path = temp_dir / "references.json"
+    infobox_path = temp_dir / "infobox.json"
     assets_path = temp_dir / "assets"
 
     article_path.write_text(markdown, encoding="utf-8")
@@ -46,6 +48,15 @@ def write_bundle(
             ensure_ascii=False,
         )
         + "\n",
+        encoding="utf-8",
+    )
+    infobox_payload = (
+        infobox.model_dump(mode="json")
+        if infobox is not None
+        else {"title": metadata.title, "image": None, "fields": []}
+    )
+    infobox_path.write_text(
+        json.dumps(infobox_payload, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
 

@@ -33,6 +33,30 @@ class ImageBlock(BaseModel):
     role: Literal["infobox", "body"] = "body"
 
 
+class InfoboxLink(BaseModel):
+    text: str
+    href: str
+
+
+class InfoboxField(BaseModel):
+    label: str
+    text: str
+    links: list[InfoboxLink] = Field(default_factory=list)
+
+
+class InfoboxImage(BaseModel):
+    title: str
+    path: str | None = None
+    alt: str
+    caption: str | None = None
+
+
+class InfoboxData(BaseModel):
+    title: str
+    image: InfoboxImage | None = None
+    fields: list[InfoboxField] = Field(default_factory=list)
+
+
 DocumentBlock = Annotated[
     ParagraphBlock | HeadingBlock | ListBlock | ImageBlock,
     Field(discriminator="kind"),
@@ -41,6 +65,7 @@ DocumentBlock = Annotated[
 
 class Document(BaseModel):
     title: str
+    infobox: InfoboxData | None = None
     summary: list[str] = Field(default_factory=list)
     blocks: list[DocumentBlock] = Field(default_factory=list)
     references: list["ReferenceEntry"] = Field(default_factory=list)

@@ -54,6 +54,8 @@ class Wiki2MdService:
                     "blocks": len(document.blocks),
                     "references": len(document.references),
                     "images_selected": len(selected_assets),
+                    "infobox_fields": len(document.infobox.fields) if document.infobox else 0,
+                    "has_infobox": document.infobox is not None,
                 },
             )
             markdown = render_markdown(
@@ -68,6 +70,7 @@ class Wiki2MdService:
                 markdown=markdown,
                 metadata=metadata,
                 references=document.references,
+                infobox=document.infobox,
                 staging_assets_dir=staging_assets_dir,
                 overwrite=overwrite,
             )
