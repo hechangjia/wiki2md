@@ -483,7 +483,7 @@ def test_normalize_article_excludes_fragment_only_reference_links() -> None:
     assert [reference.model_dump(mode="json") for reference in document.references] == [
         {
             "id": "cite_note-example-1",
-            "text": "self anchor note anchor Example source",
+            "text": "Example source",
             "primary_url": "https://example.com/source",
             "links": [
                 {
@@ -532,12 +532,61 @@ def test_normalize_article_preserves_external_urls_with_cite_fragments() -> None
     assert [reference.model_dump(mode="json") for reference in document.references] == [
         {
             "id": "cite_note-example-1",
-            "text": "External citation anchor Local note anchor",
+            "text": "External citation anchor",
             "primary_url": "https://example.com/page#cite_note-1",
             "links": [
                 {
                     "text": "External citation anchor",
                     "href": "https://example.com/page#cite_note-1",
+                    "kind": "external",
+                }
+            ],
+        }
+    ]
+
+
+def test_normalize_article_preserves_external_urls_with_cite_ref_substrings() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <h2>References</h2>
+              <ol class="references">
+                <li id="cite_note-example-1">
+                  <cite>
+                    <a href="https://example.com/cite_ref-guide">External cite_ref path</a>
+                    <a href="./Geoffrey_Hinton#cite_ref-example-2">Local cite_ref anchor</a>
+                  </cite>
+                </li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [reference.model_dump(mode="json") for reference in document.references] == [
+        {
+            "id": "cite_note-example-1",
+            "text": "External cite_ref path",
+            "primary_url": "https://example.com/cite_ref-guide",
+            "links": [
+                {
+                    "text": "External cite_ref path",
+                    "href": "https://example.com/cite_ref-guide",
                     "kind": "external",
                 }
             ],

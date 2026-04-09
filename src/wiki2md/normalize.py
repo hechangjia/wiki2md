@@ -36,7 +36,6 @@ LINK_PRESERVING_HEADINGS = {
 }
 
 _CJK_CHAR_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
-_REFERENCE_MARKER_RE = re.compile(r"\[[^\[\]]+\]")
 _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
 _ARCHIVE_HINTS = ("archive.org", "wayback", "webcache")
@@ -114,7 +113,7 @@ def _extract_reference_text(node: Tag) -> str:
         backlink.decompose()
     for anchor in clone.find_all("a", href=True):
         href = anchor.get("href", "")
-        if "cite_ref" in href:
+        if _is_reference_anchor_href(href):
             anchor.decompose()
 
     return _clean_text(clone)
@@ -141,20 +140,24 @@ def _extract_reference_links(node: Tag, article: FetchedArticle) -> list[Referen
 
 
 def _is_reference_anchor_href(href: str) -> bool:
-    if "cite_ref" in href:
-        return True
-
     parsed = urlparse(href)
-    fragment = parsed.fragment.casefold()
     if href.startswith("#"):
         return True
-    if not fragment.startswith("cite_"):
-        return False
 
     is_absolute = bool(parsed.netloc and parsed.scheme in {"http", "https"}) or href.startswith(
         "//"
     )
-    return not is_absolute
+    if is_absolute:
+        return False
+
+    if "cite_ref" in href:
+        return True
+
+    fragment = parsed.fragment.casefold()
+    if not fragment.startswith("cite_"):
+        return False
+
+    return True
 
 
 def _classify_reference_link(
