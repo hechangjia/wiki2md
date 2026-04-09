@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from wiki2md.document import Document, ParagraphBlock, ReferenceEntry
+from wiki2md.document import Document, ParagraphBlock, ReferenceEntry, ReferenceLink
 from wiki2md.models import ConversionResult
 from wiki2md.service import Wiki2MdService
 
@@ -31,7 +31,20 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
             title="Andrej Karpathy",
             summary=["Andrej Karpathy is a computer scientist."],
             blocks=[ParagraphBlock(text="Karpathy worked at OpenAI.")],
-            references=[ReferenceEntry(text="Reference number one.")],
+            references=[
+                ReferenceEntry(
+                    id="cite_note-example-1",
+                    text="Reference number one.",
+                    primary_url="https://example.com/source",
+                    links=[
+                        ReferenceLink(
+                            text="Example source",
+                            href="https://example.com/source",
+                            kind="external",
+                        )
+                    ],
+                )
+            ],
         ),
     )
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
@@ -53,6 +66,17 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
     assert Path(result.article_path).exists()
     assert Path(result.references_path).exists()
     assert json.loads(Path(result.references_path).read_text(encoding="utf-8")) == [
-        {"id": None, "text": "Reference number one.", "links": []}
+        {
+            "id": "cite_note-example-1",
+            "text": "Reference number one.",
+            "primary_url": "https://example.com/source",
+            "links": [
+                {
+                    "text": "Example source",
+                    "href": "https://example.com/source",
+                    "kind": "external",
+                }
+            ],
+        }
     ]
     assert result.asset_count == 0

@@ -1,6 +1,6 @@
 import re
 from typing import Literal
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
 
@@ -39,6 +39,8 @@ _CJK_CHAR_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 _REFERENCE_MARKER_RE = re.compile(r"\[[^\[\]]+\]")
 _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
+_ARCHIVE_HINTS = ("archive.org", "wayback", "webcache")
+_IDENTIFIER_HINTS = ("doi", "pmid", "arxiv", "oclc", "isbn", "issn", "hdl", "proquest")
 
 
 def _is_cjk(char: str) -> bool:
@@ -126,9 +128,44 @@ def _extract_reference_links(node: Tag, article: FetchedArticle) -> list[Referen
         text = _clean_text(anchor)
         if not href or not text or "cite_ref" in href:
             continue
-        links.append(ReferenceLink(text=text, href=_normalize_href(article, href)))
+        normalized_href = _normalize_href(article, href)
+        links.append(
+            ReferenceLink(
+                text=text,
+                href=normalized_href,
+                kind=_classify_reference_link(text, normalized_href),
+            )
+        )
 
     return links
+
+
+def _classify_reference_link(
+    text: str,
+    href: str,
+) -> Literal["external", "wiki", "archive", "identifier", "other"]:
+    parsed = urlparse(href)
+    host = parsed.netloc.casefold()
+    path = parsed.path.casefold()
+    combined = f"{text.casefold()} {host} {path} {parsed.query.casefold()}"
+
+    if any(hint in host or hint in path for hint in _ARCHIVE_HINTS):
+        return "archive"
+    if "wikipedia.org" in host:
+        return "wiki"
+    if any(hint in combined for hint in _IDENTIFIER_HINTS):
+        return "identifier"
+    if parsed.scheme in {"http", "https"}:
+        return "external"
+    return "other"
+
+
+def _select_primary_url(links: list[ReferenceLink]) -> str | None:
+    for preferred in ("external", "archive", "identifier"):
+        for link in links:
+            if link.kind == preferred:
+                return link.href
+    return None
 
 
 def _extract_list_item_href(
@@ -240,11 +277,13 @@ def normalize_article(article: FetchedArticle) -> Document:
     for item in body.select("ol.references > li"):
         text = _extract_reference_text(item)
         if text:
+            links = _extract_reference_links(item, article)
             document.references.append(
                 ReferenceEntry(
                     id=item.get("id"),
                     text=text,
-                    links=_extract_reference_links(item, article),
+                    primary_url=_select_primary_url(links),
+                    links=links,
                 )
             )
 

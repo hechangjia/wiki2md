@@ -50,9 +50,11 @@ class Document(BaseModel):
 class ReferenceLink(BaseModel):
     text: str
     href: str
+    kind: Literal["external", "wiki", "archive", "identifier", "other"]
 
 
 class ReferenceEntry(BaseModel):
     id: str | None = None
     text: str
+    primary_url: str | None = None
     links: list[ReferenceLink] = Field(default_factory=list)

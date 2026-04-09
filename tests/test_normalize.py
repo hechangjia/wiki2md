@@ -372,3 +372,74 @@ def test_normalize_article_preserves_external_links_in_list_sections() -> None:
             href="https://inspirehep.net/author/profile/Geoffrey.E.Hinton.1",
         )
     ]
+
+
+def test_normalize_article_classifies_reference_links_and_selects_primary_url() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Geoffrey Hinton is a researcher.</p>
+              <h2>References</h2>
+              <ol class="references">
+                <li id="cite_note-example-1">
+                  <span class="mw-cite-backlink">
+                    <a href="./Geoffrey_Hinton#cite_ref-example-1">↑</a>
+                  </span>
+                  <cite>
+                    Example article.
+                    <a href="https://example.com/source">Example source</a>
+                    <a href="https://archive.org/details/example-source">Archived copy</a>
+                    <a href="./DOI_(identifier)">DOI</a>
+                    <a href="https://doi.org/10.1000/example">10.1000/example</a>
+                  </cite>
+                </li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [reference.model_dump(mode="json") for reference in document.references] == [
+        {
+            "id": "cite_note-example-1",
+            "text": "Example article. Example source Archived copy DOI 10.1000/example",
+            "primary_url": "https://example.com/source",
+            "links": [
+                {
+                    "text": "Example source",
+                    "href": "https://example.com/source",
+                    "kind": "external",
+                },
+                {
+                    "text": "Archived copy",
+                    "href": "https://archive.org/details/example-source",
+                    "kind": "archive",
+                },
+                {
+                    "text": "DOI",
+                    "href": "https://en.wikipedia.org/wiki/DOI_(identifier)",
+                    "kind": "wiki",
+                },
+                {
+                    "text": "10.1000/example",
+                    "href": "https://doi.org/10.1000/example",
+                    "kind": "identifier",
+                },
+            ],
+        }
+    ]
