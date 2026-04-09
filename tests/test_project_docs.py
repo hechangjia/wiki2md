@@ -134,7 +134,31 @@ def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
     assert "Trusted Publishing" in readme
     assert "pyproject.toml" in readme
     assert "CHANGELOG.md" in readme
-    assert "v0.1.1" in readme
+
+
+def test_readme_shows_single_page_example_before_batch_details() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "## Single-Page Example" in readme
+    assert "examples/andrej-karpathy/" in readme
+    assert "# Andrej Karpathy" in readme
+    assert "## Profile" in readme
+    assert "Andrej Karpathy is a computer scientist." in readme
+    assert "Binary `assets/` are part of normal runtime output" in readme
+    assert readme.index("## Single-Page Example") < readme.index("## Output Contract")
+    assert readme.index("## Single-Page Example") < readme.index("## Batch Workflow")
+
+
+def test_readme_points_to_examples_index_and_artifact_contract() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "## Output Contract" in readme
+    assert "`article.md`: the clean-first reading artifact for people and AI" in readme
+    assert "`references.json`: structured provenance and source trail" in readme
+    assert "`infobox.json`: machine-readable person facts" in readme
+    assert "`assets/`: local images referenced by the article" in readme
+    assert "examples/andrej-karpathy/" in readme
+    assert "examples/batch/person-manifest.jsonl" in readme
 
 
 def test_example_article_has_frontmatter_and_clean_prose() -> None:
