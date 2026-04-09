@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from wiki2md.document import (
     Document,
     HeadingBlock,
+    ImageBlock,
     InfoboxData,
     InfoboxField,
     InfoboxImage,
@@ -167,6 +168,65 @@ def test_render_markdown_omits_profile_section_when_infobox_has_no_fields() -> N
 
     assert "![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
     assert "## Profile" not in markdown
+
+
+def test_render_markdown_skips_profile_for_non_person_pages() -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=None,
+            fields=[InfoboxField(label="Type", text="Example", links=[])],
+        ),
+        summary=["Example summary."],
+    )
+
+    markdown = render_markdown(
+        document,
+        build_metadata(),
+        {},
+    )
+
+    assert "## Profile" in markdown
+
+    markdown = render_markdown(
+        document,
+        build_metadata().model_copy(update={"page_type": "concept"}),
+        {},
+    )
+
+    assert "## Profile" not in markdown
+
+
+def test_render_markdown_uses_infobox_image_path_fallback_and_avoids_duplicate_infobox_blocks(
+) -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
+                title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
+                alt="Andrej Karpathy portrait",
+                caption="Karpathy in 2024",
+            ),
+            fields=[],
+        ),
+        summary=["Andrej Karpathy is a computer scientist."],
+        blocks=[
+            ImageBlock(
+                title="File:Andrej_Karpathy_2024.jpg",
+                alt="Duplicate portrait",
+                caption="Duplicate caption",
+                role="infobox",
+            )
+        ],
+    )
+
+    markdown = render_markdown(document, build_metadata(), {})
+
+    assert markdown.count("![Andrej Karpathy portrait](./assets/001-infobox.jpg)") == 1
+    assert "Duplicate caption" not in markdown
 
 
 def test_render_markdown_compresses_long_reference_lists() -> None:

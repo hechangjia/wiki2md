@@ -38,7 +38,10 @@ def _render_list(items: Iterable[ListItem], ordered: bool) -> list[str]:
     return lines
 
 
-def _render_profile(document: Document) -> list[str]:
+def _render_profile(document: Document, metadata: ArticleMetadata) -> list[str]:
+    if metadata.page_type != "person":
+        return []
+
     if document.infobox is None or not document.infobox.fields:
         return []
 
@@ -56,15 +59,21 @@ def render_markdown(
 ) -> str:
     lines: list[str] = [_render_frontmatter(metadata), "", f"# {document.title}", ""]
 
+    infobox_image_title = (
+        document.infobox.image.title
+        if document.infobox and document.infobox.image
+        else None
+    )
+
     if document.infobox and document.infobox.image:
-        relative_path = asset_map.get(document.infobox.image.title)
+        relative_path = asset_map.get(document.infobox.image.title) or document.infobox.image.path
         if relative_path:
             lines.append(f"![{document.infobox.image.alt}](./{relative_path})")
             if document.infobox.image.caption:
                 lines.append(f"*{document.infobox.image.caption}*")
             lines.append("")
 
-    lines.extend(_render_profile(document))
+    lines.extend(_render_profile(document, metadata))
 
     for paragraph in document.summary:
         lines.append(paragraph)
@@ -81,6 +90,8 @@ def render_markdown(
             lines.extend(_render_list(block.items, ordered=block.ordered))
             lines.append("")
         elif isinstance(block, ImageBlock):
+            if block.role == "infobox" or block.title == infobox_image_title:
+                continue
             relative_path = asset_map.get(block.title)
             if relative_path:
                 lines.append(f"![{block.alt}](./{relative_path})")
