@@ -109,39 +109,32 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "output/.wiki2md/batches/" in readme
 
 
-def test_readme_leads_with_rag_value_and_local_quickstart() -> None:
+def test_readme_uses_chinese_first_structure_and_keeps_english_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
+    # Chinese-first homepage layout must stay before the English summary block.
 
-    assert "RAG-ready local corpus artifacts" in readme
-    assert "uv sync --extra dev" in readme
-    assert 'uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"' in readme
-    assert 'uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"' in readme
-    assert readme.index("## Quickstart") < readme.index("## Batch Workflow")
+    assert "把 Wikipedia 人物词条转换成适合 AI / RAG 使用的本地 Markdown 语料包" in readme
+    assert "## 为什么适合 AI / RAG" in readme
+    assert "## 快速开始" in readme
+    assert "## 核心命令" in readme
+    assert "## 单篇人物示例" in readme
+    assert "## 批量语料工作流" in readme
+    assert "## 输出契约" in readme
+    assert "## 发布流程" in readme
+    assert "## English Summary" in readme
+    assert readme.index("## 快速开始") < readme.index("## 批量语料工作流")
 
 
-def test_readme_shows_single_page_example_before_batch_details() -> None:
+def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
+    # Release flow coverage must call out trusted steps and artifacts.
 
-    assert "## Single-Page Example" in readme
-    assert "examples/andrej-karpathy/" in readme
-    assert "# Andrej Karpathy" in readme
-    assert "## Profile" in readme
-    assert "Andrej Karpathy is a computer scientist." in readme
-    assert "Binary `assets/` are part of normal runtime output" in readme
-    assert readme.index("## Single-Page Example") < readme.index("## Output Contract")
-    assert readme.index("## Single-Page Example") < readme.index("## Batch Workflow")
-
-
-def test_readme_points_to_examples_index_and_artifact_contract() -> None:
-    readme = Path("README.md").read_text(encoding="utf-8")
-
-    assert "## Output Contract" in readme
-    assert "`article.md`: the clean-first reading artifact for people and AI" in readme
-    assert "`references.json`: structured provenance and source trail" in readme
-    assert "`infobox.json`: machine-readable person facts" in readme
-    assert "`assets/`: local images referenced by the article" in readme
-    assert "examples/andrej-karpathy/" in readme
-    assert "examples/batch/person-manifest.jsonl" in readme
+    assert "GitHub Release" in readme
+    assert "PyPI" in readme
+    assert "Trusted Publishing" in readme
+    assert "pyproject.toml" in readme
+    assert "CHANGELOG.md" in readme
+    assert "v0.1.1" in readme
 
 
 def test_example_article_has_frontmatter_and_clean_prose() -> None:
