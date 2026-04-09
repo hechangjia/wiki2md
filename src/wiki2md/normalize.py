@@ -234,6 +234,25 @@ def _extract_image_block(node: Tag, role: Literal["infobox", "body"]) -> ImageBl
     )
 
 
+def _extract_infobox_image_block(infobox: Tag) -> ImageBlock | None:
+    for cell in infobox.select("td.infobox-image, td.infobox-full-data"):
+        block = _extract_image_block(cell, role="infobox")
+        if block is not None:
+            return block
+
+    for row in infobox.find_all("tr"):
+        if row.find_parent("table") is not infobox:
+            continue
+        if row.find("th", recursive=False) is not None:
+            continue
+        for cell in row.find_all("td", recursive=False):
+            block = _extract_image_block(cell, role="infobox")
+            if block is not None:
+                return block
+
+    return _extract_image_block(infobox, role="infobox")
+
+
 def _extract_infobox_links(node: Tag, article: FetchedArticle) -> list[InfoboxLink]:
     links: list[InfoboxLink] = []
 
@@ -258,12 +277,15 @@ def _build_infobox_image(block: ImageBlock | None, article_title: str) -> Infobo
 
 
 def _extract_infobox(article: FetchedArticle, infobox: Tag, title: str) -> InfoboxData:
-    image = _build_infobox_image(_extract_image_block(infobox, role="infobox"), title)
+    image = _build_infobox_image(_extract_infobox_image_block(infobox), title)
     fields: list[InfoboxField] = []
 
-    for row in infobox.select("tr"):
-        label_node = row.find("th")
-        value_node = row.find("td")
+    for row in infobox.find_all("tr"):
+        if row.find_parent("table") is not infobox:
+            continue
+
+        label_node = row.find("th", recursive=False)
+        value_node = row.find("td", recursive=False)
         if label_node is None or value_node is None:
             continue
 

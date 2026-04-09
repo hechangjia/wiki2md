@@ -117,6 +117,12 @@ def test_normalize_article_extracts_chinese_infobox_fields() -> None:
 
     assert document.title == "艾伦·图灵"
     assert document.infobox is not None
+    assert document.infobox.image == InfoboxImage(
+        title="File:Alan_Turing_Aged_16.jpg",
+        path=None,
+        alt="艾伦·图灵肖像",
+        caption="图灵，摄于1936年",
+    )
     assert [field.label for field in document.infobox.fields] == ["出生", "职业"]
     assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。"]
     assert document.references == [ReferenceEntry(text="图灵传记资料。")]
@@ -373,6 +379,92 @@ def test_normalize_article_falls_back_infobox_image_alt_and_caption() -> None:
     assert document.infobox.image is not None
     assert document.infobox.image.alt == "Geoffrey Hinton"
     assert document.infobox.image.caption == "Geoffrey Hinton"
+
+
+def test_normalize_article_prefers_portrait_row_for_infobox_image() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Example",
+            normalized_url="https://en.wikipedia.org/wiki/Example",
+            lang="en",
+            title="Example",
+            slug="example",
+        ),
+        canonical_title="Example",
+        html="""
+        <html><body>
+          <h1>Example</h1>
+          <table class="infobox">
+            <tr>
+              <th scope="row">Symbol</th>
+              <td>
+                <a class="mw-file-description" href="./File:Decorative_icon.svg">
+                  <img alt="decorative icon" src="//upload.wikimedia.org/example/icon.svg" />
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Portrait</th>
+              <td class="infobox-image">
+                <a class="mw-file-description" href="./File:Actual_portrait.jpg">
+                  <img alt="actual portrait" src="//upload.wikimedia.org/example/portrait.jpg" />
+                </a>
+                <div class="infobox-caption">Example portrait</div>
+              </td>
+            </tr>
+          </table>
+        </body></html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.infobox is not None
+    assert document.infobox.image is not None
+    assert document.infobox.image.title == "File:Actual_portrait.jpg"
+    assert document.infobox.image.caption == "Example portrait"
+
+
+def test_normalize_article_infobox_fields_use_only_direct_row_cells() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Example",
+            normalized_url="https://en.wikipedia.org/wiki/Example",
+            lang="en",
+            title="Example",
+            slug="example",
+        ),
+        canonical_title="Example",
+        html="""
+        <html><body>
+          <h1>Example</h1>
+          <table class="infobox">
+            <tr>
+              <th scope="row">Born</th>
+              <td>1980</td>
+            </tr>
+            <tr>
+              <th scope="row">Awards</th>
+              <td>
+                <table>
+                  <tr>
+                    <th>Nested label</th>
+                    <td>Nested value</td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body></html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.infobox is not None
+    assert [field.label for field in document.infobox.fields] == ["Born", "Awards"]
 
 
 def test_normalize_article_preserves_external_links_in_list_sections() -> None:
