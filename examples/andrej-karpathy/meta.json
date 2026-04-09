@@ -1,0 +1,22 @@
+{
+  "title": "Andrej Karpathy",
+  "source_url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+  "source_lang": "en",
+  "source_type": "wikipedia",
+  "retrieved_at": "2026-04-08T00:00:00+00:00",
+  "page_type": "person",
+  "pageid": 12345,
+  "revid": 67890,
+  "image_manifest": [
+    {
+      "title": "File:Andrej_Karpathy_2024.jpg",
+      "path": "assets/001-infobox.jpg"
+    }
+  ],
+  "warnings": [],
+  "cleanup_stats": {
+    "blocks": 3,
+    "references": 1,
+    "images_selected": 1
+  }
+}
