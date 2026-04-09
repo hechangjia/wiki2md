@@ -62,6 +62,8 @@ class PlannedBatchTask(BaseModel):
 class DuplicateBatchEntry(BaseModel):
     entry: BatchManifestEntry
     reason: Literal["duplicate_url", "duplicate_output_dir"]
+    resolved_slug: str
+    relative_output_dir: str
 
 
 class BatchRunConfig(BaseModel):

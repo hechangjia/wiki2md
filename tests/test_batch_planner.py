@@ -38,3 +38,4 @@ def test_plan_batch_tasks_skips_duplicate_urls_and_duplicate_output_dirs() -> No
     assert len(tasks) == 1
     assert len(duplicates) == 2
     assert {item.reason for item in duplicates} == {"duplicate_url", "duplicate_output_dir"}
+    assert {item.relative_output_dir for item in duplicates} == {"person/default/andrej-karpathy"}

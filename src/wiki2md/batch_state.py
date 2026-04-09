@@ -59,3 +59,7 @@ def write_batch_reports(batch_dir: Path, result: BatchRunResult) -> None:
         if invalid_jsonl:
             invalid_jsonl += "\n"
         (batch_dir / "invalid.jsonl").write_text(invalid_jsonl, encoding="utf-8")
+    else:
+        invalid_path = batch_dir / "invalid.jsonl"
+        if invalid_path.exists():
+            invalid_path.unlink()

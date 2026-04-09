@@ -145,3 +145,59 @@ def test_run_batch_resume_avoids_rerunning_success_and_skipped_existing(tmp_path
     assert calls == {}
     assert result.totals["success"] == 1
     assert result.totals["skipped_existing"] == 1
+
+
+def test_run_batch_resume_drops_stale_entries_not_in_current_manifest(tmp_path: Path) -> None:
+    manifest = tmp_path / "people.txt"
+    manifest.write_text("https://en.wikipedia.org/wiki/Andrej_Karpathy\n", encoding="utf-8")
+    output_root = tmp_path / "output"
+    state_path = output_root / ".wiki2md" / "batches" / "batch-123" / "state.json"
+    state_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path.write_text(
+        BatchRunResult(
+            batch_id="batch-123",
+            manifest_path=str(manifest),
+            output_root=str(output_root),
+            config=BatchRunConfig(
+                concurrency=1,
+                overwrite=False,
+                skip_invalid=False,
+                max_retries=2,
+            ),
+            totals={"success": 2},
+            entries=[
+                {
+                    "entry_key": "https://en.wikipedia.org/wiki/Andrej_Karpathy|person/default/andrej-karpathy",
+                    "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+                    "status": "success",
+                    "relative_output_dir": "person/default/andrej-karpathy",
+                },
+                {
+                    "entry_key": "https://en.wikipedia.org/wiki/Fei-Fei_Li|person/default/fei-fei-li",
+                    "url": "https://en.wikipedia.org/wiki/Fei-Fei_Li",
+                    "status": "success",
+                    "relative_output_dir": "person/default/fei-fei-li",
+                },
+            ],
+        ).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    calls: dict[str, int] = {}
+
+    result = run_batch(
+        manifest_path=manifest,
+        output_root=output_root,
+        service_factory=lambda: FakeService(output_root, call_counts=calls),
+        config=BatchRunConfig(
+            concurrency=1,
+            overwrite=False,
+            skip_invalid=False,
+            max_retries=2,
+        ),
+        resume_path=state_path,
+    )
+
+    assert calls == {}
+    assert [entry.url for entry in result.entries if entry.status == "success"] == [
+        "https://en.wikipedia.org/wiki/Andrej_Karpathy"
+    ]

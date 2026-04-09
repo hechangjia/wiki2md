@@ -46,18 +46,12 @@ def _build_invalid_entries(invalid_rows: list[InvalidManifestRow]) -> list[Batch
 def _build_duplicate_entries(duplicates: list[DuplicateBatchEntry]) -> list[BatchStateEntry]:
     entries: list[BatchStateEntry] = []
     for index, duplicate in enumerate(duplicates, start=1):
-        resolved_slug = duplicate.entry.slug or ""
-        relative_output_dir = (
-            f"{duplicate.entry.page_type}/{duplicate.entry.output_group}/{resolved_slug}"
-            if resolved_slug
-            else None
-        )
         entries.append(
             BatchStateEntry(
                 entry_key=f"duplicate:{index}:{duplicate.reason}:{duplicate.entry.url}",
                 url=duplicate.entry.url,
                 status="duplicate",
-                relative_output_dir=relative_output_dir,
+                relative_output_dir=duplicate.relative_output_dir,
                 manifest_entry=duplicate.entry,
                 error=duplicate.reason,
             )
@@ -145,6 +139,7 @@ def run_batch(
 ) -> BatchRunResult:
     entries, invalid_rows = load_manifest_entries(manifest_path, skip_invalid=config.skip_invalid)
     tasks, duplicates = plan_batch_tasks(entries, output_root=output_root)
+    current_task_keys = {task.entry_key for task in tasks}
 
     state_path = resume_path or default_state_path(output_root, manifest_path)
     if state_path.exists():
@@ -153,7 +148,7 @@ def run_batch(
         state_by_key = {
             entry.entry_key: entry
             for entry in result.entries
-            if entry.status not in {"invalid", "duplicate"}
+            if entry.status not in {"invalid", "duplicate"} and entry.entry_key in current_task_keys
         }
     else:
         batch_id = state_path.parent.name

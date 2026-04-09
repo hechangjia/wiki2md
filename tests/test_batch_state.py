@@ -103,3 +103,36 @@ def test_write_batch_reports_writes_failed_and_invalid_artifacts(tmp_path: Path)
     ).read_text(encoding="utf-8").strip() == "https://en.wikipedia.org/wiki/Bad_Page"
     assert "people-ai" in (batch_dir / "failed.jsonl").read_text(encoding="utf-8")
     assert "tags" in (batch_dir / "invalid.jsonl").read_text(encoding="utf-8")
+
+
+def test_write_batch_reports_removes_stale_invalid_jsonl_when_no_invalid_rows(
+    tmp_path: Path,
+) -> None:
+    batch_dir = tmp_path / "output" / ".wiki2md" / "batches" / "batch-123"
+    result_with_invalid = BatchRunResult(
+        batch_id="batch-123",
+        manifest_path="people.jsonl",
+        output_root=str(tmp_path / "output"),
+        config=BatchRunConfig(concurrency=4, overwrite=False, skip_invalid=True, max_retries=2),
+        totals={"invalid": 1},
+        invalid_rows=[
+            InvalidManifestRow(
+                line_number=2,
+                raw_text='{"tags": "bad"}',
+                error="Input should be a valid list",
+            )
+        ],
+    )
+    write_batch_reports(batch_dir, result_with_invalid)
+    assert (batch_dir / "invalid.jsonl").exists()
+
+    result_without_invalid = BatchRunResult(
+        batch_id="batch-123",
+        manifest_path="people.jsonl",
+        output_root=str(tmp_path / "output"),
+        config=BatchRunConfig(concurrency=4, overwrite=False, skip_invalid=True, max_retries=2),
+        totals={},
+    )
+    write_batch_reports(batch_dir, result_without_invalid)
+
+    assert not (batch_dir / "invalid.jsonl").exists()
