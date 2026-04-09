@@ -106,6 +106,16 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "output/.wiki2md/batches/" in readme
 
 
+def test_readme_installed_user_batch_example_uses_local_input() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    quickstart = readme.split("用户安装路径：", maxsplit=1)[1].split(
+        "贡献者仓库路径：", maxsplit=1
+    )[0]
+
+    assert "wiki2md batch ./urls.txt --output-dir output" in quickstart
+    assert "examples/batch/person-manifest.jsonl" not in quickstart
+
+
 def test_readme_uses_chinese_first_structure_and_keeps_english_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     # Chinese-first homepage layout must stay before the English summary block.

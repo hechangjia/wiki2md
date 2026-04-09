@@ -31,7 +31,7 @@
 pip install wiki2md
 wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
-wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+wiki2md batch ./urls.txt --output-dir output
 ```
 
 贡献者仓库路径：

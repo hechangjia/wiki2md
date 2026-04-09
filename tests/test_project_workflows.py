@@ -30,6 +30,8 @@ def test_ci_workflow_runs_quality_and_build_steps() -> None:
     quality_commands = "\n".join(step.get("run", "") for step in quality_steps)
     build_commands = "\n".join(step.get("run", "") for step in build_steps)
 
+    assert "uv sync --frozen --extra dev" in quality_commands
+    assert "uv sync --frozen --extra dev" in build_commands
     assert "uv run ruff check ." in quality_commands
     assert "uv run pytest -q" in quality_commands
     assert "uv build" in build_commands
@@ -51,6 +53,17 @@ def test_publish_workflow_uses_release_trigger_and_trusted_publishing() -> None:
 
 def test_publish_workflow_validates_release_tag_against_pyproject_version() -> None:
     workflow = load_workflow(".github/workflows/publish.yml")
+    validate_steps = workflow["jobs"]["validate-release"]["steps"]
+    build_steps = workflow["jobs"]["build"]["steps"]
+
+    validate_checkout = next(step for step in validate_steps if step.get("name") == "Checkout")
+    build_checkout = next(step for step in build_steps if step.get("name") == "Checkout")
+    assert validate_checkout["with"]["ref"] == "${{ github.event.release.tag_name }}"
+    assert build_checkout["with"]["ref"] == "${{ github.event.release.tag_name }}"
+
+    build_commands = "\n".join(step.get("run", "") for step in build_steps)
+    assert "uv sync --frozen --extra dev" in build_commands
+
     validate_steps = workflow["jobs"]["validate-release"]["steps"]
     validate_commands = "\n".join(step.get("run", "") for step in validate_steps)
 
