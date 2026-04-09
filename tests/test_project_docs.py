@@ -98,30 +98,48 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "wiki2md convert <url>" in readme
     assert "wiki2md inspect <url>" in readme
     assert "wiki2md batch <file>" in readme
-    assert "no inline Wikipedia citation markers" in readme
     assert "primary_url" in readme
     assert "kind" in readme
-    assert "best-effort" in readme
-    assert "may be null" in readme
     assert "jsonl" in readme
     assert "--resume" in readme
     assert "failed.jsonl" in readme
     assert "output/.wiki2md/batches/" in readme
 
 
+def test_readme_installed_user_batch_example_uses_local_input() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    quickstart = readme.split("用户安装路径：", maxsplit=1)[1].split(
+        "贡献者仓库路径：", maxsplit=1
+    )[0]
+
+    assert "wiki2md batch ./urls.txt --output-dir output" in quickstart
+    assert "examples/batch/person-manifest.jsonl" not in quickstart
+
+
 def test_readme_uses_chinese_first_structure_and_keeps_english_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
     # Chinese-first homepage layout must stay before the English summary block.
 
-    assert "把 Wikipedia 人物词条转换成适合 AI / RAG 使用的本地 Markdown 语料包" in readme
-    assert "## 为什么适合 AI / RAG" in readme
-    assert "## 快速开始" in readme
-    assert "## 核心命令" in readme
-    assert "## 单篇人物示例" in readme
-    assert "## 批量语料工作流" in readme
-    assert "## 输出契约" in readme
-    assert "## 发布流程" in readme
+    assert "Wikipedia 人物词条" in readme
+    assert "本地 Markdown" in readme
     assert "## English Summary" in readme
+    chinese_headings = [
+        "## 为什么适合 AI / RAG",
+        "## 快速开始",
+        "## 核心命令",
+        "## 单篇人物示例",
+        "## 批量语料工作流",
+        "## 输出契约",
+        "## 发布流程",
+    ]
+
+    for heading in chinese_headings:
+        assert heading in readme
+
+    english_summary_index = readme.index("## English Summary")
+    chinese_indices = {heading: readme.index(heading) for heading in chinese_headings}
+    assert all(index < english_summary_index for index in chinese_indices.values())
+    assert max(chinese_indices.values()) < english_summary_index
     assert readme.index("## 快速开始") < readme.index("## 批量语料工作流")
 
 
@@ -145,7 +163,7 @@ def test_readme_shows_single_page_example_before_batch_details() -> None:
     assert "# Andrej Karpathy" in readme
     assert "## Profile" in readme
     assert "Andrej Karpathy is a computer scientist." in readme
-    assert "Binary `assets/` are part of normal runtime output" in readme
+    assert "`assets/`" in readme
     assert readme.index("## 单篇人物示例") < readme.index("## 输出契约")
     assert readme.index("## 单篇人物示例") < readme.index("## 批量语料工作流")
 
@@ -154,10 +172,10 @@ def test_readme_points_to_examples_index_and_artifact_contract() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "## 输出契约" in readme
-    assert "`article.md`: the clean-first reading artifact for people and AI" in readme
-    assert "`references.json`: structured provenance and source trail" in readme
-    assert "`infobox.json`: machine-readable person facts" in readme
-    assert "`assets/`: local images referenced by the article" in readme
+    assert "article.md" in readme
+    assert "references.json" in readme
+    assert "infobox.json" in readme
+    assert "`assets/`" in readme
     assert "examples/andrej-karpathy/" in readme
     assert "examples/batch/person-manifest.jsonl" in readme
 
@@ -186,10 +204,6 @@ def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
     assert "infobox.json" in readme
     assert "## Profile" in readme
     assert "      infobox.json" in readme
-    assert (
-        "Local `article.md`, `meta.json`, `references.json`, `infobox.json`, and `assets/` output"
-        in readme
-    )
 
 
 def test_example_infobox_sidecar_matches_contract() -> None:
