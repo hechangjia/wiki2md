@@ -73,6 +73,7 @@ jobs:
     needs: build
     if: ${{ !github.event.release.prerelease && !github.event.release.draft }}
     permissions:
+      contents: read
       id-token: write
     environment:
       name: pypi
