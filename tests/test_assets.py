@@ -45,6 +45,31 @@ def test_select_assets_prefers_infobox_and_skips_decorative_icons() -> None:
     assert selected[0].relative_path == "assets/001-infobox.jpg"
 
 
+def test_select_assets_matches_parsoid_file_links_to_media_titles() -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        blocks=[
+            ImageBlock(
+                title="File:Andrej_Karpathy,_OpenAI.png",
+                alt="Portrait",
+                caption="Karpathy at Stanford in 2016",
+                role="infobox",
+            )
+        ],
+    )
+    media = [
+        MediaItem(
+            title="Andrej Karpathy, OpenAI.png",
+            original_url="https://upload.wikimedia.org/example/andrej-karpathy.png",
+            mime_type="image/png",
+        )
+    ]
+
+    selected = select_assets(document, media)
+
+    assert [asset.filename for asset in selected] == ["001-infobox.png"]
+
+
 @respx.mock
 def test_download_assets_writes_binary_files(tmp_path: Path) -> None:
     respx.get("https://upload.wikimedia.org/example/andrej-karpathy.jpg").mock(

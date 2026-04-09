@@ -1,6 +1,6 @@
 import mimetypes
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import httpx
 
@@ -8,7 +8,7 @@ from wiki2md.document import Document, ImageBlock
 from wiki2md.errors import FetchError
 from wiki2md.models import MediaItem, SelectedAsset
 
-IGNORED_TITLES = {"file:audio.svg", "file:loudspeaker.svg"}
+IGNORED_TITLES = {"audio.svg", "loudspeaker.svg"}
 
 
 def _guess_extension(source_url: str, mime_type: str | None) -> str:
@@ -24,8 +24,16 @@ def _guess_extension(source_url: str, mime_type: str | None) -> str:
     return ".bin"
 
 
+def _normalize_title(title: str) -> str:
+    normalized = unquote(title).strip()
+    normalized = normalized.removeprefix("/wiki/").removeprefix("./")
+    if normalized.casefold().startswith("file:"):
+        normalized = normalized[5:]
+    return normalized.replace("_", " ").casefold()
+
+
 def select_assets(document: Document, media: list[MediaItem]) -> list[SelectedAsset]:
-    media_by_title = {item.title: item for item in media}
+    media_by_title = {_normalize_title(item.title): item for item in media}
     selected: list[SelectedAsset] = []
     counter = 1
 
@@ -33,11 +41,13 @@ def select_assets(document: Document, media: list[MediaItem]) -> list[SelectedAs
         if not isinstance(block, ImageBlock):
             continue
 
-        key = block.title.casefold()
+        key = _normalize_title(block.title)
         if key in IGNORED_TITLES:
             continue
 
         media_item = media_by_title.get(block.title)
+        if media_item is None:
+            media_item = media_by_title.get(key)
         if media_item is None or not media_item.original_url:
             continue
 

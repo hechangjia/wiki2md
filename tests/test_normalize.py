@@ -106,3 +106,52 @@ def test_normalize_article_preserves_chinese_text() -> None:
         not (isinstance(block, HeadingBlock) and block.text == "参考文献")
         for block in document.blocks
     )
+
+
+def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+            normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+            lang="en",
+            title="Andrej_Karpathy",
+            slug="andrej-karpathy",
+        ),
+        canonical_title="Andrej Karpathy",
+        pageid=12345,
+        revid=67890,
+        html="""
+        <html>
+          <head><title>Andrej Karpathy</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <table class="infobox">
+                <tr>
+                  <td class="infobox-image">
+                    <a class="mw-file-description" href="./File:Andrej_Karpathy,_OpenAI.png">
+                      <img src="//upload.wikimedia.org/example/andrej-karpathy.png" />
+                    </a>
+                    <div class="infobox-caption">Karpathy at Stanford in 2016</div>
+                  </td>
+                </tr>
+              </table>
+              <p>Andrej Karpathy is a computer scientist.</p>
+              <h2>Career</h2>
+              <p>Karpathy worked at OpenAI and Tesla.</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.title == "Andrej Karpathy"
+    assert document.summary == ["Andrej Karpathy is a computer scientist."]
+    assert [block.kind for block in document.blocks] == ["image", "heading", "paragraph"]
+
+    image_block = document.blocks[0]
+    assert isinstance(image_block, ImageBlock)
+    assert image_block.title == "File:Andrej_Karpathy,_OpenAI.png"
+    assert image_block.caption == "Karpathy at Stanford in 2016"

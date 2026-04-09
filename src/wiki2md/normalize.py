@@ -14,6 +14,7 @@ NOISE_SELECTORS = [
     ".noprint",
     ".mw-empty-elt",
 ]
+FILE_LINK_PREFIXES = ("/wiki/File:", "./File:")
 
 REFERENCE_HEADINGS = {
     "en": {"references"},
@@ -68,12 +69,16 @@ def _clean_text(node: Tag) -> str:
 
 
 def _extract_image_block(node: Tag, role: Literal["infobox", "body"]) -> ImageBlock | None:
-    anchor = node.select_one("a.mw-file-description[href^='/wiki/File:']")
+    anchor = node.select_one("a.mw-file-description[href]")
     image = node.select_one("img")
     if anchor is None or image is None:
         return None
 
-    title = anchor["href"].removeprefix("/wiki/")
+    href = anchor.get("href", "")
+    if not any(href.startswith(prefix) for prefix in FILE_LINK_PREFIXES):
+        return None
+
+    title = href.removeprefix("/wiki/").removeprefix("./")
     caption_node = node.select_one(".infobox-caption, figcaption")
     caption = _clean_text(caption_node) if caption_node else None
 
@@ -94,10 +99,11 @@ def normalize_article(article: FetchedArticle) -> Document:
 
     body = soup.body or soup
     title_node = body.find("h1")
-    if title_node is None:
-        raise ParseError("Expected an <h1> title in the article HTML.")
+    title = _clean_text(title_node) if title_node is not None else article.canonical_title.strip()
+    if not title:
+        raise ParseError("Expected a title in the article HTML or fetched article metadata.")
 
-    document = Document(title=_clean_text(title_node))
+    document = Document(title=title)
 
     infobox = body.select_one("table.infobox")
     if infobox is not None:
