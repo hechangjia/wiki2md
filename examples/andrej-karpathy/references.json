@@ -2,10 +2,17 @@
   {
     "id": "cite_note-karpathy-profile-1",
     "text": "Sample reference entry for Andrej Karpathy.",
+    "primary_url": "https://example.com/karpathy-profile",
     "links": [
       {
         "text": "Example source",
-        "href": "https://example.com/karpathy-profile"
+        "href": "https://example.com/karpathy-profile",
+        "kind": "external"
+      },
+      {
+        "text": "Andrej Karpathy",
+        "href": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        "kind": "wiki"
       }
     ]
   }
