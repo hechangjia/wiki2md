@@ -51,3 +51,21 @@ def test_example_references_sidecar_matches_enriched_contract() -> None:
             assert isinstance(link["text"], str)
             assert isinstance(link["href"], str)
             assert link["kind"] in allowed_kinds
+
+
+def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "infobox.json" in readme
+    assert "## Profile" in readme
+
+
+def test_example_infobox_sidecar_matches_contract() -> None:
+    payload = json.loads(
+        Path("examples/andrej-karpathy/infobox.json").read_text(encoding="utf-8")
+    )
+
+    assert payload["title"] == "Andrej Karpathy"
+    assert isinstance(payload.get("fields"), list)
+    assert payload["fields"]
+    assert {"label", "text", "links"}.issubset(payload["fields"][0])

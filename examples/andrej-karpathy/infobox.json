@@ -1,0 +1,21 @@
+{
+  "title": "Andrej Karpathy",
+  "image": {
+    "title": "File:Andrej_Karpathy_2024.jpg",
+    "path": "assets/001-infobox.jpg",
+    "alt": "Andrej Karpathy portrait",
+    "caption": "Karpathy in 2024"
+  },
+  "fields": [
+    {
+      "label": "Born",
+      "text": "3 October 1986 Bratislava, Czechoslovakia",
+      "links": []
+    },
+    {
+      "label": "Occupation",
+      "text": "Computer scientist",
+      "links": []
+    }
+  ]
+}
