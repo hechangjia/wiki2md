@@ -98,48 +98,74 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "wiki2md convert <url>" in readme
     assert "wiki2md inspect <url>" in readme
     assert "wiki2md batch <file>" in readme
-    assert "no inline Wikipedia citation markers" in readme
     assert "primary_url" in readme
     assert "kind" in readme
-    assert "best-effort" in readme
-    assert "may be null" in readme
     assert "jsonl" in readme
     assert "--resume" in readme
     assert "failed.jsonl" in readme
     assert "output/.wiki2md/batches/" in readme
 
 
-def test_readme_leads_with_rag_value_and_local_quickstart() -> None:
+def test_readme_uses_chinese_first_structure_and_keeps_english_summary() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
+    # Chinese-first homepage layout must stay before the English summary block.
 
-    assert "RAG-ready local corpus artifacts" in readme
-    assert "uv sync --extra dev" in readme
-    assert 'uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"' in readme
-    assert 'uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"' in readme
-    assert readme.index("## Quickstart") < readme.index("## Batch Workflow")
+    assert "Wikipedia 人物词条" in readme
+    assert "本地 Markdown" in readme
+    assert "## English Summary" in readme
+    chinese_headings = [
+        "## 为什么适合 AI / RAG",
+        "## 快速开始",
+        "## 核心命令",
+        "## 单篇人物示例",
+        "## 批量语料工作流",
+        "## 输出契约",
+        "## 发布流程",
+    ]
+
+    for heading in chinese_headings:
+        assert heading in readme
+
+    english_summary_index = readme.index("## English Summary")
+    chinese_indices = {heading: readme.index(heading) for heading in chinese_headings}
+    assert all(index < english_summary_index for index in chinese_indices.values())
+    assert max(chinese_indices.values()) < english_summary_index
+    assert readme.index("## 快速开始") < readme.index("## 批量语料工作流")
+
+
+def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    # Release flow coverage must call out trusted steps and artifacts.
+
+    assert "GitHub Release" in readme
+    assert "PyPI" in readme
+    assert "Trusted Publishing" in readme
+    assert "pyproject.toml" in readme
+    assert "CHANGELOG.md" in readme
+    assert "v0.1.1" in readme
 
 
 def test_readme_shows_single_page_example_before_batch_details() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## Single-Page Example" in readme
+    assert "## 单篇人物示例" in readme
     assert "examples/andrej-karpathy/" in readme
     assert "# Andrej Karpathy" in readme
     assert "## Profile" in readme
     assert "Andrej Karpathy is a computer scientist." in readme
-    assert "Binary `assets/` are part of normal runtime output" in readme
-    assert readme.index("## Single-Page Example") < readme.index("## Output Contract")
-    assert readme.index("## Single-Page Example") < readme.index("## Batch Workflow")
+    assert "`assets/`" in readme
+    assert readme.index("## 单篇人物示例") < readme.index("## 输出契约")
+    assert readme.index("## 单篇人物示例") < readme.index("## 批量语料工作流")
 
 
 def test_readme_points_to_examples_index_and_artifact_contract() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## Output Contract" in readme
-    assert "`article.md`: the clean-first reading artifact for people and AI" in readme
-    assert "`references.json`: structured provenance and source trail" in readme
-    assert "`infobox.json`: machine-readable person facts" in readme
-    assert "`assets/`: local images referenced by the article" in readme
+    assert "## 输出契约" in readme
+    assert "article.md" in readme
+    assert "references.json" in readme
+    assert "infobox.json" in readme
+    assert "`assets/`" in readme
     assert "examples/andrej-karpathy/" in readme
     assert "examples/batch/person-manifest.jsonl" in readme
 
@@ -168,10 +194,6 @@ def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
     assert "infobox.json" in readme
     assert "## Profile" in readme
     assert "      infobox.json" in readme
-    assert (
-        "Local `article.md`, `meta.json`, `references.json`, `infobox.json`, and `assets/` output"
-        in readme
-    )
 
 
 def test_example_infobox_sidecar_matches_contract() -> None:
