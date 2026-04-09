@@ -17,15 +17,15 @@ def write_bundle(
     final_dir = output_root / "people" / resolution.slug
     temp_dir = output_root / ".tmp" / resolution.slug
 
-    temp_dir.parent.mkdir(parents=True, exist_ok=True)
-    if temp_dir.exists():
-        shutil.rmtree(temp_dir)
-    temp_dir.mkdir(parents=True)
-
     if final_dir.exists():
         if not overwrite:
             raise WriteError(f"Output already exists: {final_dir}")
         shutil.rmtree(final_dir)
+
+    temp_dir.parent.mkdir(parents=True, exist_ok=True)
+    if temp_dir.exists():
+        shutil.rmtree(temp_dir)
+    temp_dir.mkdir(parents=True)
 
     article_path = temp_dir / "article.md"
     meta_path = temp_dir / "meta.json"

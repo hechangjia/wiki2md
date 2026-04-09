@@ -2,6 +2,9 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
+
+from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, UrlResolution
 from wiki2md.writer import write_bundle
 
@@ -50,3 +53,36 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
     assert meta_path.exists()
     assert (Path(result.output_dir) / "assets" / "001-infobox.jpg").exists()
     assert json.loads(meta_path.read_text(encoding="utf-8"))["source_lang"] == "en"
+
+
+def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path) -> None:
+    output_root = tmp_path / "output"
+    final_dir = output_root / "people" / "andrej-karpathy"
+    final_dir.mkdir(parents=True)
+    (final_dir / "article.md").write_text("existing", encoding="utf-8")
+
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    metadata = ArticleMetadata(
+        title="Andrej Karpathy",
+        source_url=resolution.source_url,
+        source_lang="en",
+        retrieved_at=datetime(2026, 4, 8, tzinfo=UTC),
+    )
+
+    with pytest.raises(WriteError):
+        write_bundle(
+            output_root=output_root,
+            resolution=resolution,
+            markdown="# Andrej Karpathy\n",
+            metadata=metadata,
+            staging_assets_dir=tmp_path / "staging-assets",
+            overwrite=False,
+        )
+
+    assert not (output_root / ".tmp" / "andrej-karpathy").exists()
