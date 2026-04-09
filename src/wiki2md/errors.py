@@ -20,3 +20,11 @@ class ParseError(Wiki2MdError):
 
 class WriteError(Wiki2MdError):
     """Raised when output artifacts cannot be written safely."""
+
+
+class BatchManifestValidationError(Wiki2MdError):
+    """Raised when a batch manifest contains invalid rows in strict mode."""
+
+    def __init__(self, invalid_rows: list[object]) -> None:
+        super().__init__("Batch manifest validation failed.")
+        self.invalid_rows = invalid_rows
