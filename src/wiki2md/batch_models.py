@@ -1,16 +1,48 @@
+from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wiki2md.models import UrlResolution
+from wiki2md.urls import slugify_title
+
+
+def _normalize_path_segment(value: str, field_name: str) -> str:
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError(f"{field_name} cannot be empty")
+
+    path = Path(stripped)
+    if path.is_absolute() or len(path.parts) != 1 or stripped in {".", ".."}:
+        raise ValueError(f"{field_name} must be a single safe path segment")
+
+    normalized = slugify_title(stripped)
+    if normalized in {"", ".", ".."}:
+        raise ValueError(f"{field_name} must resolve to a non-empty safe path segment")
+
+    return normalized
 
 
 class BatchManifestEntry(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     url: str
     page_type: Literal["person"] = "person"
     slug: str | None = None
     tags: list[str] = Field(default_factory=list)
     output_group: str = "default"
+
+    @field_validator("slug")
+    @classmethod
+    def normalize_slug(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return _normalize_path_segment(value, field_name="slug")
+
+    @field_validator("output_group")
+    @classmethod
+    def normalize_output_group(cls, value: str) -> str:
+        return _normalize_path_segment(value, field_name="output_group")
 
 
 class InvalidManifestRow(BaseModel):

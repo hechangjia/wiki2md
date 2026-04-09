@@ -4,7 +4,12 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from wiki2md.batch_models import BatchManifestEntry, InvalidManifestRow
-from wiki2md.errors import BatchManifestValidationError
+from wiki2md.errors import (
+    BatchManifestValidationError,
+    InvalidWikipediaUrlError,
+    UnsupportedPageError,
+)
+from wiki2md.urls import resolve_wikipedia_url
 
 
 def _parse_manifest_line(manifest_path: Path, line: str) -> dict[str, object]:
@@ -29,7 +34,13 @@ def load_manifest_entries(
         try:
             payload = _parse_manifest_line(manifest_path, line)
             entry = BatchManifestEntry.model_validate(payload)
-        except (json.JSONDecodeError, ValidationError) as exc:
+            resolve_wikipedia_url(entry.url)
+        except (
+            InvalidWikipediaUrlError,
+            UnsupportedPageError,
+            json.JSONDecodeError,
+            ValidationError,
+        ) as exc:
             invalid_rows.append(
                 InvalidManifestRow(
                     line_number=line_number,
