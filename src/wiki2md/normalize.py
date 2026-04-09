@@ -315,6 +315,8 @@ def _extract_infobox(article: FetchedArticle, infobox: Tag, title: str) -> Infob
         value_node = row.find("td", recursive=False)
         if label_node is None or value_node is None:
             continue
+        if _extract_image_block(value_node, role="infobox") is not None:
+            continue
 
         label = _clean_text(label_node)
         text = _clean_prose_text(value_node)

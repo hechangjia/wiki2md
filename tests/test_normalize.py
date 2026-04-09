@@ -424,6 +424,7 @@ def test_normalize_article_prefers_portrait_row_for_infobox_image() -> None:
     assert document.infobox.image is not None
     assert document.infobox.image.title == "File:Actual_portrait.jpg"
     assert document.infobox.image.caption == "Example portrait"
+    assert document.infobox.fields == []
 
 
 def test_normalize_article_infobox_fields_use_only_direct_row_cells() -> None:
