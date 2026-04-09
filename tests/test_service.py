@@ -99,13 +99,15 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
             ],
         }
     ]
-    assert json.loads(Path(result.meta_path).read_text(encoding="utf-8"))["cleanup_stats"] == {
+    payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    assert payload["cleanup_stats"] == {
         "blocks": 1,
         "references": 1,
         "images_selected": 0,
         "infobox_fields": 1,
         "has_infobox": True,
     }
+    assert "resolved_slug" not in payload
     assert result.asset_count == 0
 
 

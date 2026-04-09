@@ -57,9 +57,10 @@ class Wiki2MdService:
     ) -> ConversionResult:
         resolution = resolve_wikipedia_url(url)
         relative_output_dir = normalize_relative_output_dir(Path("people") / resolution.slug)
+        resolved_slug: str | None = None
         if context is not None:
             relative_output_dir = normalize_relative_output_dir(Path(context.relative_output_dir))
-        resolved_slug = relative_output_dir.name
+            resolved_slug = relative_output_dir.name
 
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
