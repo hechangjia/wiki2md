@@ -59,12 +59,6 @@ def render_markdown(
 ) -> str:
     lines: list[str] = [_render_frontmatter(metadata), "", f"# {document.title}", ""]
 
-    infobox_image_title = (
-        document.infobox.image.title
-        if document.infobox and document.infobox.image
-        else None
-    )
-
     if document.infobox and document.infobox.image:
         relative_path = asset_map.get(document.infobox.image.title) or document.infobox.image.path
         if relative_path:
@@ -90,7 +84,7 @@ def render_markdown(
             lines.extend(_render_list(block.items, ordered=block.ordered))
             lines.append("")
         elif isinstance(block, ImageBlock):
-            if block.role == "infobox" or block.title == infobox_image_title:
+            if block.role == "infobox":
                 continue
             relative_path = asset_map.get(block.title)
             if relative_path:

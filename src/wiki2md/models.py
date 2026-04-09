@@ -45,7 +45,7 @@ class ArticleMetadata(BaseModel):
     source_lang: SupportedLang
     source_type: Literal["wikipedia"] = "wikipedia"
     retrieved_at: datetime
-    page_type: Literal["person"] = "person"
+    page_type: str = "person"
     pageid: int | None = None
     revid: int | None = None
     image_manifest: list[dict[str, str]] = Field(default_factory=list)

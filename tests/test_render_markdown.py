@@ -223,10 +223,48 @@ def test_render_markdown_uses_infobox_image_path_fallback_and_avoids_duplicate_i
         ],
     )
 
-    markdown = render_markdown(document, build_metadata(), {})
+    markdown = render_markdown(
+        document,
+        build_metadata(),
+        {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"},
+    )
 
     assert markdown.count("![Andrej Karpathy portrait](./assets/001-infobox.jpg)") == 1
     assert "Duplicate caption" not in markdown
+
+
+def test_render_markdown_keeps_body_image_reuse_of_infobox_file() -> None:
+    document = Document(
+        title="Andrej Karpathy",
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
+                title="File:Andrej_Karpathy_2024.jpg",
+                path="assets/001-infobox.jpg",
+                alt="Andrej Karpathy portrait",
+                caption="Karpathy in 2024",
+            ),
+            fields=[],
+        ),
+        summary=["Andrej Karpathy is a computer scientist."],
+        blocks=[
+            ImageBlock(
+                title="File:Andrej_Karpathy_2024.jpg",
+                alt="Karpathy on stage",
+                caption="Karpathy speaking at a conference",
+            )
+        ],
+    )
+
+    markdown = render_markdown(
+        document,
+        build_metadata(),
+        {"File:Andrej_Karpathy_2024.jpg": "assets/001-infobox.jpg"},
+    )
+
+    assert "![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
+    assert "![Karpathy on stage](./assets/001-infobox.jpg)" in markdown
+    assert "*Karpathy speaking at a conference*" in markdown
 
 
 def test_render_markdown_compresses_long_reference_lists() -> None:
