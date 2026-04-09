@@ -134,6 +134,7 @@ def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
     assert "Trusted Publishing" in readme
     assert "pyproject.toml" in readme
     assert "CHANGELOG.md" in readme
+    assert "v0.1.1" in readme
 
 
 def test_readme_shows_single_page_example_before_batch_details() -> None:
