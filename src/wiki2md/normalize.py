@@ -148,7 +148,13 @@ def _is_reference_anchor_href(href: str) -> bool:
     fragment = parsed.fragment.casefold()
     if href.startswith("#"):
         return True
-    return fragment.startswith("cite_")
+    if not fragment.startswith("cite_"):
+        return False
+
+    is_absolute = bool(parsed.netloc and parsed.scheme in {"http", "https"}) or href.startswith(
+        "//"
+    )
+    return not is_absolute
 
 
 def _classify_reference_link(

@@ -496,6 +496,55 @@ def test_normalize_article_excludes_fragment_only_reference_links() -> None:
     ]
 
 
+def test_normalize_article_preserves_external_urls_with_cite_fragments() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <h2>References</h2>
+              <ol class="references">
+                <li id="cite_note-example-1">
+                  <cite>
+                    <a href="https://example.com/page#cite_note-1">External citation anchor</a>
+                    <a href="./Geoffrey_Hinton#cite_note-example-2">Local note anchor</a>
+                  </cite>
+                </li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [reference.model_dump(mode="json") for reference in document.references] == [
+        {
+            "id": "cite_note-example-1",
+            "text": "External citation anchor Local note anchor",
+            "primary_url": "https://example.com/page#cite_note-1",
+            "links": [
+                {
+                    "text": "External citation anchor",
+                    "href": "https://example.com/page#cite_note-1",
+                    "kind": "external",
+                }
+            ],
+        }
+    ]
+
+
 def test_select_primary_url_prefers_archive_when_external_missing() -> None:
     links = [
         ReferenceLink(
