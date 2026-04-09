@@ -5,11 +5,12 @@ from wiki2md.document import (
     Document,
     InfoboxData,
     InfoboxField,
+    InfoboxImage,
     ParagraphBlock,
     ReferenceEntry,
     ReferenceLink,
 )
-from wiki2md.models import ConversionResult
+from wiki2md.models import ConversionResult, SelectedAsset
 from wiki2md.service import Wiki2MdService
 
 
@@ -106,3 +107,55 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
         "has_infobox": True,
     }
     assert result.asset_count == 0
+
+
+def test_convert_url_backfills_infobox_image_path_from_selected_assets(
+    monkeypatch, tmp_path: Path
+) -> None:
+    service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
+
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(
+            title="Andrej Karpathy",
+            infobox=InfoboxData(
+                title="Andrej Karpathy",
+                image=InfoboxImage(
+                    title="File:Andrej_Karpathy_2024.jpg",
+                    alt="Andrej Karpathy portrait",
+                    caption="Karpathy in 2024",
+                ),
+                fields=[InfoboxField(label="Occupation", text="Computer scientist", links=[])],
+            ),
+            summary=["Andrej Karpathy is a computer scientist."],
+        ),
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.select_assets",
+        lambda document, media: [
+            SelectedAsset(
+                title="File:Andrej_Karpathy_2024.jpg",
+                source_url="https://upload.wikimedia.org/example.jpg",
+                filename="001-infobox.jpg",
+                relative_path="assets/001-infobox.jpg",
+            )
+        ],
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: None,
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Andrej Karpathy\n",
+    )
+
+    result = service.convert_url(
+        "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        overwrite=False,
+    )
+
+    infobox_payload = json.loads(
+        (Path(result.output_dir) / "infobox.json").read_text(encoding="utf-8")
+    )
+    assert infobox_payload["image"]["path"] == "assets/001-infobox.jpg"

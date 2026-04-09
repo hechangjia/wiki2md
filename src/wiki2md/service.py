@@ -5,11 +5,33 @@ from pathlib import Path
 
 from wiki2md.assets import download_assets, select_assets
 from wiki2md.client import MediaWikiClient
+from wiki2md.document import Document
 from wiki2md.models import ArticleMetadata, ConversionResult, InspectionResult
 from wiki2md.normalize import normalize_article
 from wiki2md.render_markdown import render_markdown
 from wiki2md.urls import resolve_wikipedia_url
 from wiki2md.writer import write_bundle
+
+
+def _with_infobox_asset_paths(document: Document, asset_map: dict[str, str]) -> Document:
+    if document.infobox is None or document.infobox.image is None:
+        return document
+
+    relative_path = asset_map.get(document.infobox.image.title)
+    if relative_path is None or document.infobox.image.path == relative_path:
+        return document
+
+    return document.model_copy(
+        update={
+            "infobox": document.infobox.model_copy(
+                update={
+                    "image": document.infobox.image.model_copy(
+                        update={"path": relative_path}
+                    )
+                }
+            )
+        }
+    )
 
 
 class Wiki2MdService:
@@ -32,6 +54,8 @@ class Wiki2MdService:
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
         selected_assets = select_assets(document, article.media)
+        asset_map = {asset.title: asset.relative_path for asset in selected_assets}
+        document = _with_infobox_asset_paths(document, asset_map)
 
         staging_root = Path(tempfile.mkdtemp(prefix="wiki2md-"))
         staging_assets_dir = staging_root / "assets"
@@ -61,7 +85,7 @@ class Wiki2MdService:
             markdown = render_markdown(
                 document,
                 metadata,
-                {asset.title: asset.relative_path for asset in selected_assets},
+                asset_map,
             )
 
             return write_bundle(
