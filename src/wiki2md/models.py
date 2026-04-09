@@ -64,5 +64,6 @@ class ConversionResult(BaseModel):
     output_dir: str
     article_path: str
     meta_path: str
+    references_path: str
     asset_count: int
     warnings: list[str] = Field(default_factory=list)

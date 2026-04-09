@@ -67,6 +67,7 @@ class Wiki2MdService:
                 resolution=resolution,
                 markdown=markdown,
                 metadata=metadata,
+                references=document.references,
                 staging_assets_dir=staging_assets_dir,
                 overwrite=overwrite,
             )

@@ -1,6 +1,7 @@
+import json
 from pathlib import Path
 
-from wiki2md.document import Document, ParagraphBlock
+from wiki2md.document import Document, ParagraphBlock, ReferenceEntry
 from wiki2md.models import ConversionResult
 from wiki2md.service import Wiki2MdService
 
@@ -30,7 +31,7 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
             title="Andrej Karpathy",
             summary=["Andrej Karpathy is a computer scientist."],
             blocks=[ParagraphBlock(text="Karpathy worked at OpenAI.")],
-            references=[],
+            references=[ReferenceEntry(text="Reference number one.")],
         ),
     )
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
@@ -50,4 +51,8 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
 
     assert isinstance(result, ConversionResult)
     assert Path(result.article_path).exists()
+    assert Path(result.references_path).exists()
+    assert json.loads(Path(result.references_path).read_text(encoding="utf-8")) == [
+        {"id": None, "text": "Reference number one.", "links": []}
+    ]
     assert result.asset_count == 0

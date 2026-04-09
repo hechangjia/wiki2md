@@ -18,12 +18,15 @@ class FakeService:
         output_dir.mkdir(parents=True, exist_ok=True)
         article_path = output_dir / "article.md"
         meta_path = output_dir / "meta.json"
+        references_path = output_dir / "references.json"
         article_path.write_text("# Andrej Karpathy\n", encoding="utf-8")
         meta_path.write_text("{}", encoding="utf-8")
+        references_path.write_text("[]", encoding="utf-8")
         return ConversionResult(
             output_dir=str(output_dir),
             article_path=str(article_path),
             meta_path=str(meta_path),
+            references_path=str(references_path),
             asset_count=0,
         )
 

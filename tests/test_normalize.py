@@ -1,6 +1,14 @@
 from pathlib import Path
 
-from wiki2md.document import Document, HeadingBlock, ImageBlock, ListBlock, ParagraphBlock
+from wiki2md.document import (
+    Document,
+    HeadingBlock,
+    ImageBlock,
+    ListBlock,
+    ListItem,
+    ParagraphBlock,
+    ReferenceEntry,
+)
 from wiki2md.models import FetchedArticle, UrlResolution
 from wiki2md.normalize import normalize_article
 
@@ -32,7 +40,7 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
         "Andrej Karpathy is a Slovak-Canadian computer scientist.[note 1]",
         "He cofounded Eureka Labs and writes about neural networks.",
     ]
-    assert document.references == [
+    assert [reference.text for reference in document.references] == [
         "Reference number one.",
         "Reference number two in paragraph form.",
     ]
@@ -57,7 +65,11 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
     list_block = document.blocks[3]
     assert isinstance(list_block, ListBlock)
     assert list_block.ordered is False
-    assert list_block.items == ["OpenAI", "Tesla"]
+    assert list_block.items == [ListItem(text="OpenAI"), ListItem(text="Tesla")]
+    assert document.references == [
+        ReferenceEntry(text="Reference number one."),
+        ReferenceEntry(text="Reference number two in paragraph form."),
+    ]
     assert all(
         not (isinstance(block, HeadingBlock) and block.text == "References")
         for block in document.blocks
@@ -92,7 +104,7 @@ def test_normalize_article_preserves_chinese_text() -> None:
 
     assert document.title == "艾伦·图灵"
     assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。[1]"]
-    assert document.references == ["图灵传记资料。"]
+    assert document.references == [ReferenceEntry(text="图灵传记资料。")]
     assert [block.kind for block in document.blocks] == ["heading", "paragraph"]
 
     heading_block = document.blocks[0]
@@ -155,3 +167,53 @@ def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() ->
     assert isinstance(image_block, ImageBlock)
     assert image_block.title == "File:Andrej_Karpathy,_OpenAI.png"
     assert image_block.caption == "Karpathy at Stanford in 2016"
+
+
+def test_normalize_article_preserves_external_links_in_list_sections() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        pageid=12345,
+        revid=67890,
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Geoffrey Hinton is a computer scientist.</p>
+              <h2>External links</h2>
+              <ul>
+                <li>
+                  <a
+                    class="external text"
+                    href="https://inspirehep.net/author/profile/Geoffrey.E.Hinton.1"
+                    rel="mw:ExtLink nofollow"
+                  >Geoffrey Hinton</a>
+                  <span> on </span>
+                  <a href="./INSPIRE-HEP" rel="mw:WikiLink">INSPIRE-HEP</a>
+                </li>
+              </ul>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [block.kind for block in document.blocks] == ["heading", "list"]
+    list_block = document.blocks[1]
+    assert isinstance(list_block, ListBlock)
+    assert list_block.items == [
+        ListItem(
+            text="Geoffrey Hinton on INSPIRE-HEP",
+            href="https://inspirehep.net/author/profile/Geoffrey.E.Hinton.1",
+        )
+    ]

@@ -10,7 +10,7 @@ Convert Wikipedia person pages into clean local Markdown artifacts with structur
 
 - English-first Wikipedia support with Chinese article compatibility
 - Person article URLs as the v1 target
-- Local `article.md`, `meta.json`, and `assets/` output
+- Local `article.md`, `meta.json`, `references.json`, and `assets/` output
 - MediaWiki REST API as the primary data source
 
 ## Install
@@ -41,6 +41,7 @@ output/
     andrej-karpathy/
       article.md
       meta.json
+      references.json
       assets/
 ```
 
@@ -56,4 +57,4 @@ wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 wiki2md batch urls.txt --output-dir output
 ```
 
-See `examples/andrej-karpathy/` for a sample artifact pair.
+See `examples/andrej-karpathy/` for a sample artifact set.

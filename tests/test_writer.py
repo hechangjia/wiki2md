@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from wiki2md.document import ReferenceEntry
 from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, UrlResolution
 from wiki2md.writer import write_bundle
@@ -42,6 +43,7 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
         resolution=resolution,
         markdown="# Andrej Karpathy\n",
         metadata=metadata,
+        references=[ReferenceEntry(text="Reference number one.")],
         staging_assets_dir=staging_assets,
         overwrite=False,
     )
@@ -51,8 +53,13 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
 
     assert article_path.exists()
     assert meta_path.exists()
+    assert (Path(result.output_dir) / "references.json").exists()
     assert (Path(result.output_dir) / "assets" / "001-infobox.jpg").exists()
     assert json.loads(meta_path.read_text(encoding="utf-8"))["source_lang"] == "en"
+    references_payload = json.loads(
+        (Path(result.output_dir) / "references.json").read_text(encoding="utf-8")
+    )
+    assert references_payload == [{"id": None, "text": "Reference number one.", "links": []}]
 
 
 def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path) -> None:
@@ -81,6 +88,7 @@ def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path)
             resolution=resolution,
             markdown="# Andrej Karpathy\n",
             metadata=metadata,
+            references=[],
             staging_assets_dir=tmp_path / "staging-assets",
             overwrite=False,
         )

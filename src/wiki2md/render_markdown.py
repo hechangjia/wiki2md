@@ -2,7 +2,14 @@ from typing import Iterable
 
 import yaml
 
-from wiki2md.document import Document, HeadingBlock, ImageBlock, ListBlock, ParagraphBlock
+from wiki2md.document import (
+    Document,
+    HeadingBlock,
+    ImageBlock,
+    ListBlock,
+    ListItem,
+    ParagraphBlock,
+)
 from wiki2md.models import ArticleMetadata
 
 MAX_REFERENCES = 5
@@ -22,11 +29,12 @@ def _render_frontmatter(metadata: ArticleMetadata) -> str:
     return f"---\n{yaml.safe_dump(payload, sort_keys=False, allow_unicode=True).strip()}\n---"
 
 
-def _render_list(items: Iterable[str], ordered: bool) -> list[str]:
+def _render_list(items: Iterable[ListItem], ordered: bool) -> list[str]:
     lines = []
     for index, item in enumerate(items, start=1):
         prefix = f"{index}." if ordered else "-"
-        lines.append(f"{prefix} {item}")
+        content = item.text if item.href is None else f"[{item.text}]({item.href})"
+        lines.append(f"{prefix} {content}")
     return lines
 
 
@@ -63,7 +71,8 @@ def render_markdown(
         lines.append("## References")
         lines.append("")
         kept_references = document.references[:MAX_REFERENCES]
-        lines.extend(_render_list(kept_references, ordered=True))
+        reference_items = [ListItem(text=reference.text) for reference in kept_references]
+        lines.extend(_render_list(reference_items, ordered=True))
         omitted = len(document.references) - len(kept_references)
         if omitted > 0:
             lines.append("")

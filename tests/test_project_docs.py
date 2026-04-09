@@ -14,3 +14,9 @@ def test_example_article_has_frontmatter() -> None:
 
     assert article.startswith("---\n")
     assert "source_url:" in article
+
+
+def test_example_references_sidecar_exists() -> None:
+    references = Path("examples/andrej-karpathy/references.json").read_text(encoding="utf-8")
+
+    assert references.startswith("[\n")

@@ -1,6 +1,14 @@
 from datetime import UTC, datetime
 
-from wiki2md.document import Document, HeadingBlock, ImageBlock, ListBlock, ParagraphBlock
+from wiki2md.document import (
+    Document,
+    HeadingBlock,
+    ImageBlock,
+    ListBlock,
+    ListItem,
+    ParagraphBlock,
+    ReferenceEntry,
+)
 from wiki2md.models import ArticleMetadata
 from wiki2md.render_markdown import render_markdown
 
@@ -29,9 +37,12 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
             ),
             HeadingBlock(level=2, text="Career"),
             ParagraphBlock(text="Karpathy worked at OpenAI and Tesla."),
-            ListBlock(ordered=False, items=["OpenAI", "Tesla"]),
+            ListBlock(
+                ordered=False,
+                items=[ListItem(text="OpenAI"), ListItem(text="Tesla")],
+            ),
         ],
-        references=["Reference number one."],
+        references=[ReferenceEntry(text="Reference number one.")],
     )
 
     markdown = render_markdown(
@@ -80,7 +91,7 @@ def test_render_markdown_compresses_long_reference_lists() -> None:
     document = Document(
         title="Andrej Karpathy",
         summary=["Andrej Karpathy is a computer scientist."],
-        references=[f"Reference {index}" for index in range(1, 8)],
+        references=[ReferenceEntry(text=f"Reference {index}") for index in range(1, 8)],
     )
 
     markdown = render_markdown(document, build_metadata(), {})
@@ -91,3 +102,30 @@ def test_render_markdown_compresses_long_reference_lists() -> None:
     assert "Reference 7" not in markdown
     assert "5. Reference 5\n\n_2 additional reference(s) omitted for brevity._" in markdown
     assert markdown.endswith("\n")
+
+
+def test_render_markdown_renders_markdown_links_for_link_aware_lists() -> None:
+    document = Document(
+        title="Geoffrey Hinton",
+        summary=["Geoffrey Hinton is a computer scientist."],
+        blocks=[
+            HeadingBlock(level=2, text="External links"),
+            ListBlock(
+                ordered=False,
+                items=[
+                    ListItem(
+                        text="Geoffrey Hinton on INSPIRE-HEP",
+                        href="https://inspirehep.net/author/profile/Geoffrey.E.Hinton.1",
+                    )
+                ],
+            ),
+        ],
+    )
+
+    markdown = render_markdown(document, build_metadata(), {})
+
+    expected = (
+        "- [Geoffrey Hinton on INSPIRE-HEP]"
+        "(https://inspirehep.net/author/profile/Geoffrey.E.Hinton.1)"
+    )
+    assert expected in markdown

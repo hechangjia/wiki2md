@@ -8,6 +8,11 @@ class ParagraphBlock(BaseModel):
     text: str
 
 
+class ListItem(BaseModel):
+    text: str
+    href: str | None = None
+
+
 class HeadingBlock(BaseModel):
     kind: Literal["heading"] = "heading"
     level: int
@@ -17,7 +22,7 @@ class HeadingBlock(BaseModel):
 class ListBlock(BaseModel):
     kind: Literal["list"] = "list"
     ordered: bool
-    items: list[str]
+    items: list[ListItem]
 
 
 class ImageBlock(BaseModel):
@@ -38,5 +43,16 @@ class Document(BaseModel):
     title: str
     summary: list[str] = Field(default_factory=list)
     blocks: list[DocumentBlock] = Field(default_factory=list)
-    references: list[str] = Field(default_factory=list)
+    references: list["ReferenceEntry"] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+
+
+class ReferenceLink(BaseModel):
+    text: str
+    href: str
+
+
+class ReferenceEntry(BaseModel):
+    id: str | None = None
+    text: str
+    links: list[ReferenceLink] = Field(default_factory=list)

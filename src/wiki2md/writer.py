@@ -2,6 +2,7 @@ import json
 import shutil
 from pathlib import Path
 
+from wiki2md.document import ReferenceEntry
 from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, ConversionResult, UrlResolution
 
@@ -11,6 +12,7 @@ def write_bundle(
     resolution: UrlResolution,
     markdown: str,
     metadata: ArticleMetadata,
+    references: list[ReferenceEntry],
     staging_assets_dir: Path,
     overwrite: bool,
 ) -> ConversionResult:
@@ -29,11 +31,21 @@ def write_bundle(
 
     article_path = temp_dir / "article.md"
     meta_path = temp_dir / "meta.json"
+    references_path = temp_dir / "references.json"
     assets_path = temp_dir / "assets"
 
     article_path.write_text(markdown, encoding="utf-8")
     meta_path.write_text(
         json.dumps(metadata.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    references_path.write_text(
+        json.dumps(
+            [reference.model_dump(mode="json") for reference in references],
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -49,6 +61,7 @@ def write_bundle(
         output_dir=str(final_dir),
         article_path=str(final_dir / "article.md"),
         meta_path=str(final_dir / "meta.json"),
+        references_path=str(final_dir / "references.json"),
         asset_count=len(list((final_dir / "assets").iterdir())),
         warnings=metadata.warnings,
     )
