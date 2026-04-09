@@ -1,0 +1,83 @@
+name: publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  validate-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Validate release version
+        run: |
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          ref_name = os.environ["GITHUB_REF_NAME"]
+          if not ref_name.startswith("v"):
+              raise SystemExit("Release tag must start with 'v'")
+
+          project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+          version = project["project"]["version"]
+          if ref_name[1:] != version:
+              raise SystemExit(
+                  f"Release tag {ref_name} does not match project version {version}"
+              )
+
+          print(f"Validated release tag {ref_name} against project version {version}")
+          PY
+
+  build:
+    runs-on: ubuntu-latest
+    needs: validate-release
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Build distributions
+        run: uv build
+
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/*
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/wiki2md
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
