@@ -25,12 +25,20 @@ def _render_frontmatter(metadata: ArticleMetadata) -> str:
         "page_type": metadata.page_type,
         "pageid": metadata.pageid,
         "revid": metadata.revid,
+    }
+    optional_batch_fields = {
         "output_group": metadata.output_group,
         "manifest_slug": metadata.manifest_slug,
         "resolved_slug": metadata.resolved_slug,
         "tags": metadata.tags,
         "batch_id": metadata.batch_id,
     }
+    for key, value in optional_batch_fields.items():
+        if value is None:
+            continue
+        if isinstance(value, list) and not value:
+            continue
+        payload[key] = value
     return f"---\n{yaml.safe_dump(payload, sort_keys=False, allow_unicode=True).strip()}\n---"
 
 

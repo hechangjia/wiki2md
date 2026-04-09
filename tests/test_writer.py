@@ -57,7 +57,13 @@ def test_write_bundle_creates_expected_artifacts(tmp_path: Path) -> None:
     assert meta_path.exists()
     assert (Path(result.output_dir) / "references.json").exists()
     assert (Path(result.output_dir) / "assets" / "001-infobox.jpg").exists()
-    assert json.loads(meta_path.read_text(encoding="utf-8"))["source_lang"] == "en"
+    meta_payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    assert meta_payload["source_lang"] == "en"
+    assert "output_group" not in meta_payload
+    assert "manifest_slug" not in meta_payload
+    assert "resolved_slug" not in meta_payload
+    assert "tags" not in meta_payload
+    assert "batch_id" not in meta_payload
     references_payload = json.loads(
         (Path(result.output_dir) / "references.json").read_text(encoding="utf-8")
     )
@@ -105,7 +111,52 @@ def test_write_bundle_uses_custom_relative_output_dir(tmp_path: Path) -> None:
         overwrite=False,
     )
 
-    assert Path(result.output_dir) == tmp_path / "output" / "person" / "people-ai" / "karpathy-final"
+    assert Path(result.output_dir) == (
+        tmp_path / "output" / "person" / "people-ai" / "karpathy-final"
+    )
+
+
+@pytest.mark.parametrize(
+    ("relative_output_dir"),
+    [
+        Path("/tmp/escape"),
+        Path("../escape"),
+        Path("person/../escape"),
+    ],
+)
+def test_write_bundle_rejects_unsafe_relative_output_dir(
+    tmp_path: Path,
+    relative_output_dir: Path,
+) -> None:
+    staging_assets = tmp_path / "staging-assets"
+    staging_assets.mkdir()
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    metadata = ArticleMetadata(
+        title="Andrej Karpathy",
+        source_url=resolution.source_url,
+        source_lang="en",
+        retrieved_at=datetime(2026, 4, 9, tzinfo=UTC),
+    )
+
+    with pytest.raises(WriteError):
+        write_bundle(
+            output_root=tmp_path / "output",
+            relative_output_dir=relative_output_dir,
+            resolution=resolution,
+            markdown="# Andrej Karpathy\n",
+            metadata=metadata,
+            references=[],
+            infobox=None,
+            staging_assets_dir=staging_assets,
+            overwrite=False,
+        )
+
 
 def test_write_bundle_serializes_reference_primary_urls(tmp_path: Path) -> None:
     staging_assets = tmp_path / "staging-assets"
@@ -198,7 +249,7 @@ def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path)
             overwrite=False,
         )
 
-    assert not (output_root / ".tmp" / "andrej-karpathy").exists()
+    assert not (output_root / ".tmp" / "people" / "andrej-karpathy").exists()
 
 
 def test_write_bundle_writes_infobox_sidecar(tmp_path: Path) -> None:

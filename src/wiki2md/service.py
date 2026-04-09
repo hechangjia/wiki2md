@@ -10,7 +10,7 @@ from wiki2md.models import ArticleMetadata, ConversionContext, ConversionResult,
 from wiki2md.normalize import normalize_article
 from wiki2md.render_markdown import render_markdown
 from wiki2md.urls import resolve_wikipedia_url
-from wiki2md.writer import write_bundle
+from wiki2md.writer import normalize_relative_output_dir, write_bundle
 
 
 def _with_infobox_asset_paths(document: Document, asset_map: dict[str, str]) -> Document:
@@ -56,17 +56,16 @@ class Wiki2MdService:
         context: ConversionContext | None = None,
     ) -> ConversionResult:
         resolution = resolve_wikipedia_url(url)
+        relative_output_dir = normalize_relative_output_dir(Path("people") / resolution.slug)
+        if context is not None:
+            relative_output_dir = normalize_relative_output_dir(Path(context.relative_output_dir))
+        resolved_slug = relative_output_dir.name
+
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
         selected_assets = select_assets(document, article.media)
         asset_map = {asset.title: asset.relative_path for asset in selected_assets}
         document = _with_infobox_asset_paths(document, asset_map)
-
-        relative_output_dir = Path("people") / resolution.slug
-        resolved_slug = resolution.slug
-        if context is not None:
-            relative_output_dir = Path(context.relative_output_dir)
-            resolved_slug = context.resolved_slug or resolved_slug
 
         staging_root = Path(tempfile.mkdtemp(prefix="wiki2md-"))
         staging_assets_dir = staging_root / "assets"

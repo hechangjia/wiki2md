@@ -168,8 +168,14 @@ def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: 
         lambda article: Document(title="Andrej Karpathy", summary=["Example summary."]),
     )
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
-    monkeypatch.setattr("wiki2md.service.download_assets", lambda assets, destination, user_agent: None)
-    monkeypatch.setattr("wiki2md.service.render_markdown", lambda document, metadata, asset_map: "# Andrej Karpathy\n")
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: None,
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Andrej Karpathy\n",
+    )
 
     result = service.convert_url(
         "https://en.wikipedia.org/wiki/Andrej_Karpathy",
@@ -191,3 +197,35 @@ def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: 
     assert payload["resolved_slug"] == "karpathy-final"
     assert payload["tags"] == ["ai", "person"]
     assert payload["batch_id"] == "batch-123"
+
+
+def test_convert_url_derives_resolved_slug_from_relative_output_dir(
+    monkeypatch, tmp_path: Path
+) -> None:
+    service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(title="Andrej Karpathy", summary=["Example summary."]),
+    )
+    monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: None,
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Andrej Karpathy\n",
+    )
+
+    result = service.convert_url(
+        "https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        context=ConversionContext(
+            relative_output_dir="person/people-ai/custom-slug",
+            page_type="person",
+            output_group="people-ai",
+            manifest_slug="karpathy-manifest",
+        ),
+    )
+
+    payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    assert payload["resolved_slug"] == "custom-slug"

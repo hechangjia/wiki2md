@@ -7,6 +7,26 @@ from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, ConversionResult, UrlResolution
 
 
+def normalize_relative_output_dir(relative_output_dir: Path) -> Path:
+    if relative_output_dir.is_absolute():
+        raise WriteError(f"Output path must be relative: {relative_output_dir}")
+    if not relative_output_dir.parts or relative_output_dir.name in {"", "."}:
+        raise WriteError("Output path must include a final directory name")
+    if ".." in relative_output_dir.parts:
+        raise WriteError(f"Output path cannot escape output root: {relative_output_dir}")
+    return relative_output_dir
+
+
+def _metadata_payload(metadata: ArticleMetadata) -> dict[str, object]:
+    payload = metadata.model_dump(mode="json")
+    for key in ("output_group", "manifest_slug", "resolved_slug", "batch_id"):
+        if payload.get(key) is None:
+            payload.pop(key, None)
+    if not payload.get("tags"):
+        payload.pop("tags", None)
+    return payload
+
+
 def write_bundle(
     output_root: Path,
     relative_output_dir: Path,
@@ -18,6 +38,7 @@ def write_bundle(
     staging_assets_dir: Path,
     overwrite: bool,
 ) -> ConversionResult:
+    relative_output_dir = normalize_relative_output_dir(relative_output_dir)
     final_dir = output_root / relative_output_dir
     temp_dir = output_root / ".tmp" / relative_output_dir
 
@@ -39,7 +60,7 @@ def write_bundle(
 
     article_path.write_text(markdown, encoding="utf-8")
     meta_path.write_text(
-        json.dumps(metadata.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
+        json.dumps(_metadata_payload(metadata), indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
     references_path.write_text(
