@@ -405,7 +405,7 @@ def test_normalize_article_prefers_portrait_row_for_infobox_image() -> None:
             </tr>
             <tr>
               <th scope="row">Portrait</th>
-              <td class="infobox-image">
+              <td>
                 <a class="mw-file-description" href="./File:Actual_portrait.jpg">
                   <img alt="actual portrait" src="//upload.wikimedia.org/example/portrait.jpg" />
                 </a>

@@ -44,6 +44,16 @@ _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
 _ARCHIVE_HINTS = ("archive.org", "wayback", "webcache")
 _IDENTIFIER_HINTS = ("doi", "pmid", "arxiv", "oclc", "isbn", "issn", "hdl", "proquest")
+_PORTRAIT_LABELS = {
+    "portrait",
+    "image",
+    "photo",
+    "photograph",
+    "肖像",
+    "照片",
+    "图像",
+    "圖片",
+}
 
 
 def _is_cjk(char: str) -> bool:
@@ -239,6 +249,23 @@ def _extract_infobox_image_block(infobox: Tag) -> ImageBlock | None:
         block = _extract_image_block(cell, role="infobox")
         if block is not None:
             return block
+
+    for row in infobox.find_all("tr"):
+        if row.find_parent("table") is not infobox:
+            continue
+
+        label_node = row.find("th", recursive=False)
+        if label_node is None:
+            continue
+
+        label = _clean_text(label_node).casefold()
+        if label not in _PORTRAIT_LABELS:
+            continue
+
+        for cell in row.find_all("td", recursive=False):
+            block = _extract_image_block(cell, role="infobox")
+            if block is not None:
+                return block
 
     for row in infobox.find_all("tr"):
         if row.find_parent("table") is not infobox:
