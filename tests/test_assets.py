@@ -4,20 +4,24 @@ import httpx
 import respx
 
 from wiki2md.assets import download_assets, select_assets
-from wiki2md.document import Document, ImageBlock
+from wiki2md.document import Document, ImageBlock, InfoboxData, InfoboxImage
 from wiki2md.models import MediaItem
 
 
 def test_select_assets_prefers_infobox_and_skips_decorative_icons() -> None:
     document = Document(
         title="Andrej Karpathy",
-        blocks=[
-            ImageBlock(
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
                 title="File:Andrej_Karpathy_2024.jpg",
+                path=None,
                 alt="Portrait",
                 caption="Karpathy in 2024",
-                role="infobox",
             ),
+            fields=[],
+        ),
+        blocks=[
             ImageBlock(
                 title="File:Audio.svg",
                 alt="Audio icon",
@@ -48,14 +52,15 @@ def test_select_assets_prefers_infobox_and_skips_decorative_icons() -> None:
 def test_select_assets_matches_parsoid_file_links_to_media_titles() -> None:
     document = Document(
         title="Andrej Karpathy",
-        blocks=[
-            ImageBlock(
+        infobox=InfoboxData(
+            title="Andrej Karpathy",
+            image=InfoboxImage(
                 title="File:Andrej_Karpathy,_OpenAI.png",
                 alt="Portrait",
                 caption="Karpathy at Stanford in 2016",
-                role="infobox",
-            )
-        ],
+            ),
+            fields=[],
+        ),
     )
     media = [
         MediaItem(

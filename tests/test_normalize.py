@@ -3,7 +3,9 @@ from pathlib import Path
 from wiki2md.document import (
     Document,
     HeadingBlock,
-    ImageBlock,
+    InfoboxData,
+    InfoboxField,
+    InfoboxImage,
     ListBlock,
     ListItem,
     ParagraphBlock,
@@ -17,7 +19,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "html" / "person_fragment.html"
 FIXTURE_ZH = Path(__file__).parent / "fixtures" / "html" / "person_fragment_zh.html"
 
 
-def test_normalize_article_extracts_summary_blocks_images_and_references() -> None:
+def test_normalize_article_extracts_infobox_fields_and_image() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
             source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
@@ -41,29 +43,39 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
         "Andrej Karpathy is a Slovak-Canadian computer scientist.",
         "He cofounded Eureka Labs and writes about neural networks.",
     ]
+    assert document.infobox == InfoboxData(
+        title="Andrej Karpathy",
+        image=InfoboxImage(
+            title="File:Andrej_Karpathy_2024.jpg",
+            path=None,
+            alt="Andrej Karpathy portrait",
+            caption="Karpathy in 2024",
+        ),
+        fields=[
+            InfoboxField(
+                label="Born",
+                text="3 October 1986 Bratislava, Czechoslovakia",
+                links=[{"text": "Bratislava", "href": "https://en.wikipedia.org/wiki/Bratislava"}],
+            ),
+            InfoboxField(label="Occupation", text="Computer scientist", links=[]),
+        ],
+    )
     assert [reference.text for reference in document.references] == [
         "Reference number one.",
         "Reference number two in paragraph form.",
     ]
-    assert [block.kind for block in document.blocks] == ["image", "heading", "paragraph", "list"]
+    assert [block.kind for block in document.blocks] == ["heading", "paragraph", "list"]
 
-    image_block = document.blocks[0]
-    assert isinstance(image_block, ImageBlock)
-    assert image_block.title == "File:Andrej_Karpathy_2024.jpg"
-    assert image_block.alt == "Andrej Karpathy portrait"
-    assert image_block.caption == "Karpathy in 2024"
-    assert image_block.role == "infobox"
-
-    heading_block = document.blocks[1]
+    heading_block = document.blocks[0]
     assert isinstance(heading_block, HeadingBlock)
     assert heading_block.level == 2
     assert heading_block.text == "Career"
 
-    paragraph_block = document.blocks[2]
+    paragraph_block = document.blocks[1]
     assert isinstance(paragraph_block, ParagraphBlock)
     assert paragraph_block.text == "Karpathy worked at OpenAI and Tesla."
 
-    list_block = document.blocks[3]
+    list_block = document.blocks[2]
     assert isinstance(list_block, ListBlock)
     assert list_block.ordered is False
     assert list_block.items == [ListItem(text="OpenAI"), ListItem(text="Tesla")]
@@ -85,7 +97,7 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
     )
 
 
-def test_normalize_article_preserves_chinese_text() -> None:
+def test_normalize_article_extracts_chinese_infobox_fields() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
             source_url="https://zh.wikipedia.org/wiki/%E8%89%BE%E4%BC%A6%C2%B7%E5%9B%BE%E7%81%B5",
@@ -104,6 +116,8 @@ def test_normalize_article_preserves_chinese_text() -> None:
     document = normalize_article(article)
 
     assert document.title == "艾伦·图灵"
+    assert document.infobox is not None
+    assert [field.label for field in document.infobox.fields] == ["出生", "职业"]
     assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。"]
     assert document.references == [ReferenceEntry(text="图灵传记资料。")]
     assert [block.kind for block in document.blocks] == ["heading", "paragraph"]
@@ -316,13 +330,49 @@ def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() ->
     document = normalize_article(article)
 
     assert document.title == "Andrej Karpathy"
+    assert document.infobox is not None
+    assert document.infobox.image is not None
+    assert document.infobox.image.title == "File:Andrej_Karpathy,_OpenAI.png"
+    assert document.infobox.image.caption == "Karpathy at Stanford in 2016"
     assert document.summary == ["Andrej Karpathy is a computer scientist."]
-    assert [block.kind for block in document.blocks] == ["image", "heading", "paragraph"]
+    assert [block.kind for block in document.blocks] == ["heading", "paragraph"]
 
-    image_block = document.blocks[0]
-    assert isinstance(image_block, ImageBlock)
-    assert image_block.title == "File:Andrej_Karpathy,_OpenAI.png"
-    assert image_block.caption == "Karpathy at Stanford in 2016"
+
+def test_normalize_article_falls_back_infobox_image_alt_and_caption() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        pageid=1,
+        revid=2,
+        html="""
+        <html><body>
+          <h1>Geoffrey Hinton</h1>
+          <table class="infobox">
+            <tr>
+              <td>
+                <a class="mw-file-description" href="./File:Geoffrey_Hinton.jpg">
+                  <img alt="" src="//upload.wikimedia.org/example/hinton.jpg" />
+                </a>
+              </td>
+            </tr>
+          </table>
+        </body></html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.infobox is not None
+    assert document.infobox.image is not None
+    assert document.infobox.image.alt == "Geoffrey Hinton"
+    assert document.infobox.image.caption == "Geoffrey Hinton"
 
 
 def test_normalize_article_preserves_external_links_in_list_sections() -> None:

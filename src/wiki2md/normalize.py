@@ -8,6 +8,10 @@ from wiki2md.document import (
     Document,
     HeadingBlock,
     ImageBlock,
+    InfoboxData,
+    InfoboxField,
+    InfoboxImage,
+    InfoboxLink,
     ListBlock,
     ListItem,
     ParagraphBlock,
@@ -230,6 +234,55 @@ def _extract_image_block(node: Tag, role: Literal["infobox", "body"]) -> ImageBl
     )
 
 
+def _extract_infobox_links(node: Tag, article: FetchedArticle) -> list[InfoboxLink]:
+    links: list[InfoboxLink] = []
+
+    for anchor in node.find_all("a", href=True):
+        text = _clean_text(anchor)
+        href = anchor.get("href", "")
+        if not text or not href or href.startswith("#"):
+            continue
+        links.append(InfoboxLink(text=text, href=_normalize_href(article, href)))
+
+    return links
+
+
+def _build_infobox_image(block: ImageBlock | None, article_title: str) -> InfoboxImage | None:
+    if block is None:
+        return None
+
+    caption = block.caption or block.alt or article_title
+    alt = block.alt or caption or article_title
+
+    return InfoboxImage(title=block.title, path=None, alt=alt, caption=caption)
+
+
+def _extract_infobox(article: FetchedArticle, infobox: Tag, title: str) -> InfoboxData:
+    image = _build_infobox_image(_extract_image_block(infobox, role="infobox"), title)
+    fields: list[InfoboxField] = []
+
+    for row in infobox.select("tr"):
+        label_node = row.find("th")
+        value_node = row.find("td")
+        if label_node is None or value_node is None:
+            continue
+
+        label = _clean_text(label_node)
+        text = _clean_prose_text(value_node)
+        if not label or not text:
+            continue
+
+        fields.append(
+            InfoboxField(
+                label=label,
+                text=text,
+                links=_extract_infobox_links(value_node, article),
+            )
+        )
+
+    return InfoboxData(title=title, image=image, fields=fields)
+
+
 def normalize_article(article: FetchedArticle) -> Document:
     soup = BeautifulSoup(article.html, "html.parser")
 
@@ -247,9 +300,7 @@ def normalize_article(article: FetchedArticle) -> Document:
 
     infobox = body.select_one("table.infobox")
     if infobox is not None:
-        image_block = _extract_image_block(infobox, role="infobox")
-        if image_block is not None:
-            document.blocks.append(image_block)
+        document.infobox = _extract_infobox(article, infobox, title)
 
     in_lead = True
     preserve_list_links = False

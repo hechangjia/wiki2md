@@ -35,36 +35,42 @@ def _normalize_title(title: str) -> str:
 def select_assets(document: Document, media: list[MediaItem]) -> list[SelectedAsset]:
     media_by_title = {_normalize_title(item.title): item for item in media}
     selected: list[SelectedAsset] = []
+    seen_titles: set[str] = set()
     counter = 1
 
-    for block in document.blocks:
-        if not isinstance(block, ImageBlock):
-            continue
+    candidates: list[tuple[str, str]] = []
+    if document.infobox and document.infobox.image is not None:
+        candidates.append((document.infobox.image.title, "infobox"))
 
-        key = _normalize_title(block.title)
+    for block in document.blocks:
+        if isinstance(block, ImageBlock):
+            candidates.append((block.title, "infobox" if block.role == "infobox" else "image"))
+
+    for title, role in candidates:
+        key = _normalize_title(title)
+        if key in seen_titles:
+            continue
         if key in IGNORED_TITLES:
             continue
 
-        media_item = media_by_title.get(block.title)
-        if media_item is None:
-            media_item = media_by_title.get(key)
+        media_item = media_by_title.get(key)
         if media_item is None or not media_item.original_url:
             continue
 
         if (media_item.mime_type or "").startswith("image/svg") and "audio" in key:
             continue
 
-        role = "infobox" if block.role == "infobox" else "image"
         ext = _guess_extension(media_item.original_url, media_item.mime_type)
         filename = f"{counter:03d}-{role}{ext}"
         selected.append(
             SelectedAsset(
-                title=block.title,
+                title=title,
                 source_url=media_item.original_url,
                 filename=filename,
                 relative_path=f"assets/{filename}",
             )
         )
+        seen_titles.add(key)
         counter += 1
 
     return selected
