@@ -1,10 +1,15 @@
 # wiki2md
 
-Convert Wikipedia person pages into clean local Markdown artifacts with structured metadata and downloaded images.
+Turn Wikipedia person pages into RAG-ready local corpus artifacts with clean Markdown, structured sidecars, and local assets.
 
-## Why
+`wiki2md` converts noisy article pages into deterministic local files that are easy for people, embeddings pipelines, and retrieval systems to consume.
 
-`wiki2md` turns noisy Wikipedia article pages into deterministic local files that are easier for people, embeddings pipelines, and retrieval systems to consume.
+## Why It Works For RAG
+
+- Clean-first prose optimized for reading and chunking
+- Sidecar JSON artifacts keep metadata and provenance structured
+- Local `assets/` paths avoid remote fetch drift during indexing
+- Resumable batch processing supports long-running corpus builds
 
 ## Scope
 
@@ -13,10 +18,11 @@ Convert Wikipedia person pages into clean local Markdown artifacts with structur
 - Local `article.md`, `meta.json`, `references.json`, `infobox.json`, and `assets/` output
 - MediaWiki REST API as the primary data source
 
-## Install
+## Quickstart
 
 ```bash
 uv sync --extra dev
+uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 ```
 
 ## Commands
@@ -27,13 +33,18 @@ wiki2md inspect <url>
 wiki2md batch <file>
 ```
 
-## Example
+`inspect` prints JSON metadata without writing files:
 
 ```bash
-wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
+uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 ```
 
-Output layout:
+## Single-Page Example
+
+Repository example:
+- `examples/andrej-karpathy/`
+
+Representative runtime output:
 
 ```text
 output/
@@ -46,26 +57,46 @@ output/
       assets/
 ```
 
-`inspect` prints JSON metadata without writing files:
+The checked-in example focuses on the text sidecars (`article.md`, `meta.json`, `references.json`, `infobox.json`). Binary `assets/` are part of normal runtime output but are not committed to the repository example.
 
-```bash
-wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
+Excerpt from `examples/andrej-karpathy/article.md`:
+
+```markdown
+# Andrej Karpathy
+
+## Profile
+
+Andrej Karpathy is a computer scientist.
 ```
 
-## Batch Processing
+## Output Contract
+
+- `article.md`: the clean-first reading artifact for people and AI
+- `meta.json`: run metadata and article-level context
+- `references.json`: structured provenance and source trail
+- `infobox.json`: machine-readable person facts
+- `assets/`: local images referenced by the article
+
+Contract notes:
+- `article.md` is clean-first prose with no inline Wikipedia citation markers (for example, no `[8]` markers embedded in paragraph text).
+- `article.md` renders a readable `## Profile` section when infobox fields are available for the person page.
+- `infobox.json` stores the machine-readable infobox data, including the selected image metadata and field list.
+- `references.json` is a provenance sidecar where each reference includes a best-effort `primary_url` (it may be null when no suitable source URL is available), and each link entry includes a classified `kind` (`external`, `wiki`, `archive`, `identifier`, or `other`).
+
+## Batch Workflow
 
 `batch` supports both plain `txt` URL lists and structured `jsonl` manifests.
 
 `txt` mode reads one URL per non-empty line and ignores `#` comments:
 
 ```bash
-wiki2md batch urls.txt --output-dir output
+uv run wiki2md batch urls.txt --output-dir output
 ```
 
 `jsonl` mode supports per-row metadata (`page_type`, `slug`, `tags`, `output_group`):
 
 ```bash
-wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+uv run wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
 ```
 
 Example `jsonl` row:
@@ -84,7 +115,7 @@ Useful flags:
 Resume usage:
 
 ```bash
-wiki2md batch examples/batch/person-manifest.jsonl \
+uv run wiki2md batch examples/batch/person-manifest.jsonl \
   --output-dir output \
   --resume output/.wiki2md/batches/<batch-id>/state.json
 ```
@@ -99,13 +130,10 @@ Batch artifacts are written under `output/.wiki2md/batches/`:
 Retry failed rows directly:
 
 ```bash
-wiki2md batch output/.wiki2md/batches/<batch-id>/failed.jsonl --output-dir output
+uv run wiki2md batch output/.wiki2md/batches/<batch-id>/failed.jsonl --output-dir output
 ```
 
-See `examples/andrej-karpathy/` for a sample artifact set.
+## Examples
 
-Output contract notes:
-- `article.md` is clean-first prose with no inline Wikipedia citation markers (for example, no `[8]` markers embedded in paragraph text).
-- `article.md` renders a readable `## Profile` section when infobox fields are available for the person page.
-- `infobox.json` stores the machine-readable infobox data, including the selected image metadata and field list.
-- `references.json` is a provenance sidecar where each reference includes a best-effort `primary_url` (it may be null when no suitable source URL is available), and each link entry includes a classified `kind` (`external`, `wiki`, `archive`, `identifier`, or `other`).
+- `examples/andrej-karpathy/`
+- `examples/batch/person-manifest.jsonl`
