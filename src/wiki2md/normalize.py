@@ -37,9 +37,6 @@ LINK_PRESERVING_HEADINGS = {
 
 _CJK_CHAR_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 _REFERENCE_MARKER_RE = re.compile(r"\[[^\[\]]+\]")
-_INLINE_CITATION_RUN_RE = re.compile(r"(?:\s*\[(?:\d+|note\s+\d+)\])+", re.IGNORECASE)
-_SPACE_BEFORE_PUNCT_RE = re.compile(r"\s+([,.;:!?，。！？；：、])")
-_MULTI_SPACE_RE = re.compile(r" {2,}")
 _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
 
@@ -91,15 +88,15 @@ def _clean_text(node: Tag) -> str:
     return text
 
 
-def _strip_inline_citation_markers(text: str) -> str:
-    cleaned = _INLINE_CITATION_RUN_RE.sub("", text)
-    cleaned = _SPACE_BEFORE_PUNCT_RE.sub(r"\1", cleaned)
-    cleaned = _MULTI_SPACE_RE.sub(" ", cleaned)
-    return cleaned.strip()
-
-
 def _clean_prose_text(node: Tag) -> str:
-    return _strip_inline_citation_markers(_clean_text(node))
+    clone = BeautifulSoup(str(node), "html.parser").find()
+    if clone is None:
+        return ""
+
+    for reference in clone.select("sup.reference, sup.mw-ref, [rel='dc:references']"):
+        reference.decompose()
+
+    return _clean_text(clone)
 
 
 def _normalize_href(article: FetchedArticle, href: str) -> str:

@@ -135,11 +135,15 @@ def test_normalize_article_strips_inline_citation_markers_from_prose() -> None:
           <head><title>Geoffrey Hinton</title></head>
           <body>
             <section data-mw-section-id="0">
-              <p>Geoffrey Hinton is a researcher.[8] [9]</p>
+              <p>
+                Geoffrey Hinton is a researcher.
+                <sup class="mw-ref reference"><a href="#cite_note-8">[8]</a></sup>
+                <sup class="reference"><a href="#cite_note-9">[9]</a></sup>
+              </p>
               <h2>Career</h2>
-              <p>He left Google in 2023.[10]</p>
+              <p>He left Google in 2023.<sup class="reference">[10]</sup></p>
               <ul>
-                <li>Worked at Google.[11]</li>
+                <li>Worked at Google.<sup class="reference">[11]</sup></li>
               </ul>
             </section>
           </body>
@@ -170,7 +174,11 @@ def test_normalize_article_strips_inline_citation_markers_from_chinese_prose() -
           <head><title>杰弗里·辛顿</title></head>
           <body>
             <section data-mw-section-id="0">
-              <p>杰弗里·辛顿是计算机科学家。[1] [2]</p>
+              <p>
+                杰弗里·辛顿是计算机科学家。
+                <sup class="reference">[1]</sup>
+                <sup class="reference">[2]</sup>
+              </p>
             </section>
           </body>
         </html>
@@ -181,6 +189,62 @@ def test_normalize_article_strips_inline_citation_markers_from_chinese_prose() -
     document = normalize_article(article)
 
     assert document.summary == ["杰弗里·辛顿是计算机科学家。"]
+
+
+def test_normalize_article_preserves_genuine_bracketed_content() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Activation",
+            normalized_url="https://en.wikipedia.org/wiki/Activation",
+            lang="en",
+            title="Activation",
+            slug="activation",
+        ),
+        canonical_title="Activation",
+        html="""
+        <html>
+          <head><title>Activation</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>The activation stays in [0, 1].</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["The activation stays in [0, 1]."]
+
+
+def test_normalize_article_preserves_bracketed_numbers_without_reference_nodes() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Layer",
+            normalized_url="https://en.wikipedia.org/wiki/Layer",
+            lang="en",
+            title="Layer",
+            slug="layer",
+        ),
+        canonical_title="Layer",
+        html="""
+        <html>
+          <head><title>Layer</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>The model uses layer [1] for initialization.</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["The model uses layer [1] for initialization."]
 
 
 def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() -> None:
