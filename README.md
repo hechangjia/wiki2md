@@ -16,9 +16,29 @@
 - 本地 `assets/` 避免远程图片漂移
 - `batch` 支持可恢复的大批量语料构建
 
+## 范围与限制
+
+- 当前聚焦 Wikipedia 人物词条，person pages 是 v1 的一等目标
+- 目前是 English-first Wikipedia 支持，优先保证英文人物页面的稳定输出
+- 已提供中文兼容能力，但还不是对所有中文页面形态都完全通用
+- 非目标或非一等目标包括 list、timeline、以及特殊命名空间等页面类型
+
 ## 快速开始
 
+用户安装路径：
+
 ```bash
+pip install wiki2md
+wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
+wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
+wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+```
+
+贡献者仓库路径：
+
+```bash
+git clone https://github.com/hechangjia/wiki2md.git
+cd wiki2md
 uv sync --extra dev
 uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
@@ -147,9 +167,10 @@ uv run wiki2md batch output/.wiki2md/batches/<batch-id>/failed.jsonl --output-di
 
 1. 更新 `pyproject.toml` 中的版本号，例如 `0.1.0` -> `0.1.1`
 2. 更新 `CHANGELOG.md`
-3. 将发布提交推送到 `main`
-4. 在 GitHub 上创建并发布 `v0.1.1` Release
-5. `publish.yml` 会校验 release tag 与 `pyproject.toml` 版本一致后，再自动发布到 PyPI
+3. 将包含版本号和 changelog 更新的发布提交推送到 `main`
+4. 等待该 `main` 提交对应的 CI 全部通过，再继续创建 release
+5. 以这个已经通过 CI 的 `main` 提交为基准，在 GitHub 上创建并发布 `v0.1.1` tag / Release
+6. `publish.yml` 会校验 release tag 与 `pyproject.toml` 版本一致后，再自动发布到 PyPI
 
 前置条件：
 - 需要先在 PyPI 项目侧配置 GitHub OIDC Trusted Publisher
