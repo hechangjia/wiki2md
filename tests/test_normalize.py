@@ -37,7 +37,7 @@ def test_normalize_article_extracts_summary_blocks_images_and_references() -> No
     assert isinstance(document, Document)
     assert document.title == "Andrej Karpathy"
     assert document.summary == [
-        "Andrej Karpathy is a Slovak-Canadian computer scientist.[note 1]",
+        "Andrej Karpathy is a Slovak-Canadian computer scientist.",
         "He cofounded Eureka Labs and writes about neural networks.",
     ]
     assert [reference.text for reference in document.references] == [
@@ -103,7 +103,7 @@ def test_normalize_article_preserves_chinese_text() -> None:
     document = normalize_article(article)
 
     assert document.title == "艾伦·图灵"
-    assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。[1]"]
+    assert document.summary == ["艾伦·图灵是英国数学家、计算机科学先驱。"]
     assert document.references == [ReferenceEntry(text="图灵传记资料。")]
     assert [block.kind for block in document.blocks] == ["heading", "paragraph"]
 
@@ -118,6 +118,69 @@ def test_normalize_article_preserves_chinese_text() -> None:
         not (isinstance(block, HeadingBlock) and block.text == "参考文献")
         for block in document.blocks
     )
+
+
+def test_normalize_article_strips_inline_citation_markers_from_prose() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <head><title>Geoffrey Hinton</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Geoffrey Hinton is a researcher.[8] [9]</p>
+              <h2>Career</h2>
+              <p>He left Google in 2023.[10]</p>
+              <ul>
+                <li>Worked at Google.[11]</li>
+              </ul>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["Geoffrey Hinton is a researcher."]
+    assert document.blocks[1].text == "He left Google in 2023."
+    assert document.blocks[2].items == [ListItem(text="Worked at Google.")]
+
+
+def test_normalize_article_strips_inline_citation_markers_from_chinese_prose() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://zh.wikipedia.org/wiki/%E6%9D%B0%E5%BC%97%E9%87%8C%C2%B7%E8%BE%9B%E9%A1%BF",
+            normalized_url="https://zh.wikipedia.org/wiki/%E6%9D%B0%E5%BC%97%E9%87%8C%C2%B7%E8%BE%9B%E9%A1%BF",
+            lang="zh",
+            title="杰弗里·辛顿",
+            slug="杰弗里-辛顿",
+        ),
+        canonical_title="杰弗里·辛顿",
+        html="""
+        <html>
+          <head><title>杰弗里·辛顿</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>杰弗里·辛顿是计算机科学家。[1] [2]</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["杰弗里·辛顿是计算机科学家。"]
 
 
 def test_normalize_article_uses_canonical_title_when_parsoid_html_has_no_h1() -> None:

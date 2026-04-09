@@ -37,6 +37,9 @@ LINK_PRESERVING_HEADINGS = {
 
 _CJK_CHAR_RE = re.compile(r"[\u3400-\u9fff\uf900-\ufaff]")
 _REFERENCE_MARKER_RE = re.compile(r"\[[^\[\]]+\]")
+_INLINE_CITATION_RUN_RE = re.compile(r"(?:\s*\[(?:\d+|note\s+\d+)\])+", re.IGNORECASE)
+_SPACE_BEFORE_PUNCT_RE = re.compile(r"\s+([,.;:!?，。！？；：、])")
+_MULTI_SPACE_RE = re.compile(r" {2,}")
 _RIGHT_ATTACHED_CHARS = set(",.;:!?)]}，。！？；：、）》」』】")
 _LEFT_ATTACHED_CHARS = set("([{（《「『【")
 
@@ -86,6 +89,17 @@ def _clean_text(node: Tag) -> str:
         text += chunk
 
     return text
+
+
+def _strip_inline_citation_markers(text: str) -> str:
+    cleaned = _INLINE_CITATION_RUN_RE.sub("", text)
+    cleaned = _SPACE_BEFORE_PUNCT_RE.sub(r"\1", cleaned)
+    cleaned = _MULTI_SPACE_RE.sub(" ", cleaned)
+    return cleaned.strip()
+
+
+def _clean_prose_text(node: Tag) -> str:
+    return _strip_inline_citation_markers(_clean_text(node))
 
 
 def _normalize_href(article: FetchedArticle, href: str) -> str:
@@ -194,7 +208,7 @@ def normalize_article(article: FetchedArticle) -> Document:
             continue
 
         if node.name == "p":
-            text = _clean_text(node)
+            text = _clean_prose_text(node)
             if text:
                 if in_lead:
                     document.summary.append(text)
@@ -212,7 +226,7 @@ def normalize_article(article: FetchedArticle) -> Document:
         elif node.name in {"ul", "ol"} and "references" not in (node.get("class") or []):
             items = []
             for item in node.find_all("li", recursive=False):
-                text = _clean_text(item)
+                text = _clean_prose_text(item)
                 if not text:
                     continue
                 items.append(
