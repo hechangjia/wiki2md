@@ -140,20 +140,20 @@ def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
 def test_readme_shows_single_page_example_before_batch_details() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## Single-Page Example" in readme
+    assert "## 单篇人物示例" in readme
     assert "examples/andrej-karpathy/" in readme
     assert "# Andrej Karpathy" in readme
     assert "## Profile" in readme
     assert "Andrej Karpathy is a computer scientist." in readme
     assert "Binary `assets/` are part of normal runtime output" in readme
-    assert readme.index("## Single-Page Example") < readme.index("## Output Contract")
-    assert readme.index("## Single-Page Example") < readme.index("## Batch Workflow")
+    assert readme.index("## 单篇人物示例") < readme.index("## 输出契约")
+    assert readme.index("## 单篇人物示例") < readme.index("## 批量语料工作流")
 
 
 def test_readme_points_to_examples_index_and_artifact_contract() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## Output Contract" in readme
+    assert "## 输出契约" in readme
     assert "`article.md`: the clean-first reading artifact for people and AI" in readme
     assert "`references.json`: structured provenance and source trail" in readme
     assert "`infobox.json`: machine-readable person facts" in readme
