@@ -71,22 +71,6 @@ _MONTH_NAMES = (
 )
 _TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
 
-_MONTH_NAMES = (
-    "january",
-    "february",
-    "march",
-    "april",
-    "may",
-    "june",
-    "july",
-    "august",
-    "september",
-    "october",
-    "november",
-    "december",
-)
-_TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
-
 
 def _is_cjk(char: str) -> bool:
     return bool(_CJK_CHAR_RE.fullmatch(char))
@@ -142,18 +126,6 @@ def _clean_prose_text(node: Tag) -> str:
         reference.decompose()
 
     return _clean_text(clone)
-
-
-def _looks_like_orphan_date(text: str) -> bool:
-    normalized = " ".join(text.split()).casefold()
-    if not normalized or "," not in normalized:
-        return False
-    return any(normalized.startswith(f"{month} ") for month in _MONTH_NAMES)
-
-
-def _is_template_control_text(text: str) -> bool:
-    normalized = re.sub(r"\s+", "", text).casefold()
-    return normalized in _TEMPLATE_CONTROL_TEXTS
 
 
 def _looks_like_orphan_date(text: str) -> bool:
