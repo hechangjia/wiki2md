@@ -40,6 +40,23 @@ class FakeClient:
         )
 
 
+class NamedFakeClient(FakeClient):
+    def __init__(self, canonical_title: str) -> None:
+        self.canonical_title = canonical_title
+
+    def fetch_article(self, resolution):
+        from wiki2md.models import FetchedArticle
+
+        return FetchedArticle(
+            resolution=resolution,
+            canonical_title=self.canonical_title,
+            pageid=12345,
+            revid=67890,
+            html="<html></html>",
+            media=[],
+        )
+
+
 def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
     service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
 
@@ -219,6 +236,72 @@ def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: 
     assert payload["resolved_slug"] == "karpathy-final"
     assert payload["tags"] == ["ai", "person"]
     assert payload["batch_id"] == "batch-123"
+
+
+def test_convert_url_infers_article_page_type_for_non_person_pages(
+    monkeypatch, tmp_path: Path
+) -> None:
+    service = Wiki2MdService(client=NamedFakeClient("Linux"), output_root=tmp_path / "output")
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(
+            title="Linux",
+            infobox=InfoboxData(
+                title="Linux",
+                image=None,
+                fields=[InfoboxField(label="Developer", text="Community", links=[])],
+            ),
+            summary=["Linux is a family of Unix-like operating systems."],
+        ),
+    )
+    monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: _download_report(),
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Linux\n",
+    )
+
+    result = service.convert_url("https://en.wikipedia.org/wiki/Linux")
+
+    payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    assert payload["page_type"] == "article"
+
+
+def test_convert_url_prefers_explicit_context_page_type(monkeypatch, tmp_path: Path) -> None:
+    service = Wiki2MdService(
+        client=NamedFakeClient("Massachusetts Institute of Technology"),
+        output_root=tmp_path / "output",
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(
+            title="Massachusetts Institute of Technology",
+            summary=["MIT is a private research university."],
+        ),
+    )
+    monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: _download_report(),
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Massachusetts Institute of Technology\n",
+    )
+
+    result = service.convert_url(
+        "https://en.wikipedia.org/wiki/Massachusetts_Institute_of_Technology",
+        context=ConversionContext(
+            relative_output_dir="people/mit",
+            page_type="institution",
+        ),
+    )
+
+    payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    assert payload["page_type"] == "institution"
 
 
 def test_convert_url_derives_resolved_slug_from_relative_output_dir(

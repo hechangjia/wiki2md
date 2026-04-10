@@ -18,7 +18,7 @@ class UrlResolution(BaseModel):
 
 class ConversionContext(BaseModel):
     relative_output_dir: str
-    page_type: str = "person"
+    page_type: str | None = None
     output_group: str | None = None
     manifest_slug: str | None = None
     resolved_slug: str | None = None

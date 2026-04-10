@@ -12,6 +12,7 @@ from wiki2md.output_paths import (
     canonical_people_relative_output_dir,
     ensure_canonical_people_output_dir,
 )
+from wiki2md.page_types import infer_page_type
 from wiki2md.render_markdown import render_markdown
 from wiki2md.render_sources import render_sources_markdown
 from wiki2md.urls import resolve_wikipedia_url
@@ -91,6 +92,15 @@ class Wiki2MdService:
 
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
+        inferred_page_type = infer_page_type(
+            title=article.canonical_title,
+            lang=resolution.lang,
+            infobox_labels=(
+                [field.label for field in document.infobox.fields]
+                if document.infobox is not None
+                else []
+            ),
+        )
         selected_assets = select_assets(document, article.media)
 
         staging_root = Path(tempfile.mkdtemp(prefix="wiki2md-"))
@@ -117,7 +127,11 @@ class Wiki2MdService:
                 retrieved_at=datetime.now(UTC),
                 pageid=article.pageid,
                 revid=article.revid,
-                page_type=context.page_type if context is not None else "person",
+                page_type=(
+                    context.page_type
+                    if context is not None and context.page_type is not None
+                    else inferred_page_type
+                ),
                 image_manifest=[
                     {"title": asset.title, "path": asset.relative_path}
                     for asset in download_report.downloaded
