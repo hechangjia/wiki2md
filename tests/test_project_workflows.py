@@ -37,6 +37,27 @@ def test_ci_workflow_runs_quality_and_build_steps() -> None:
     assert "uv build" in build_commands
 
 
+def test_frozen_workflows_do_not_ignore_uv_lock() -> None:
+    workflow_paths = [
+        ".github/workflows/ci.yml",
+        ".github/workflows/publish.yml",
+    ]
+    workflow_commands = []
+    for path in workflow_paths:
+        workflow = load_workflow(path)
+        for job in workflow["jobs"].values():
+            workflow_commands.extend(step.get("run", "") for step in job.get("steps", []))
+
+    assert any("uv sync --frozen" in command for command in workflow_commands)
+
+    ignore_entries = {
+        line.strip()
+        for line in Path(".gitignore").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert "uv.lock" not in ignore_entries
+
+
 def test_publish_workflow_uses_release_trigger_and_trusted_publishing() -> None:
     workflow = load_workflow(".github/workflows/publish.yml")
 
