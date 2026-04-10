@@ -57,6 +57,24 @@ class InfoboxData(BaseModel):
     fields: list[InfoboxField] = Field(default_factory=list)
 
 
+class SectionEvidenceSource(BaseModel):
+    id: str | None = None
+    text: str
+    primary_url: str | None = None
+    link_kinds: list[str] = Field(default_factory=list)
+
+
+class SectionEvidence(BaseModel):
+    section_id: str
+    heading: str
+    level: int
+    paragraph_count: int = 0
+    reference_ids: list[str] = Field(default_factory=list)
+    reference_count: int = 0
+    primary_urls: list[str] = Field(default_factory=list)
+    sources: list[SectionEvidenceSource] = Field(default_factory=list)
+
+
 DocumentBlock = Annotated[
     ParagraphBlock | HeadingBlock | ListBlock | ImageBlock,
     Field(discriminator="kind"),
@@ -69,6 +87,7 @@ class Document(BaseModel):
     summary: list[str] = Field(default_factory=list)
     blocks: list[DocumentBlock] = Field(default_factory=list)
     references: list["ReferenceEntry"] = Field(default_factory=list)
+    section_evidence: list[SectionEvidence] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
 
 

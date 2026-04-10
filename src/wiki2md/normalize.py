@@ -17,6 +17,8 @@ from wiki2md.document import (
     ParagraphBlock,
     ReferenceEntry,
     ReferenceLink,
+    SectionEvidence,
+    SectionEvidenceSource,
 )
 from wiki2md.errors import ParseError
 from wiki2md.models import FetchedArticle
@@ -137,6 +139,63 @@ def _looks_like_orphan_date(text: str) -> bool:
 def _is_template_control_text(text: str) -> bool:
     normalized = re.sub(r"\s+", "", text).casefold()
     return normalized in _TEMPLATE_CONTROL_TEXTS
+
+
+def _extract_node_reference_ids(node: Tag) -> list[str]:
+    ids: list[str] = []
+    seen: set[str] = set()
+
+    for anchor in node.select("sup.reference a[href], sup.mw-ref a[href], [rel~='dc:references'][href]"):
+        href = anchor.get("href", "")
+        if not href.startswith("#"):
+            continue
+        ref_id = href.removeprefix("#").strip()
+        if not ref_id or ref_id in seen:
+            continue
+        seen.add(ref_id)
+        ids.append(ref_id)
+
+    return ids
+
+
+def _slugify_section_id(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.casefold()).strip("-") or "section"
+
+
+def _append_section_reference_ids(section: SectionEvidence, reference_ids: list[str]) -> None:
+    for ref_id in reference_ids:
+        if ref_id not in section.reference_ids:
+            section.reference_ids.append(ref_id)
+
+
+def _finalize_section(
+    section: SectionEvidence,
+    references: list[ReferenceEntry],
+) -> SectionEvidence:
+    by_id = {reference.id: reference for reference in references if reference.id}
+    sources: list[SectionEvidenceSource] = []
+    primary_urls: list[str] = []
+
+    for ref_id in section.reference_ids:
+        reference = by_id.get(ref_id)
+        if reference is None:
+            continue
+
+        sources.append(
+            SectionEvidenceSource(
+                id=reference.id,
+                text=reference.text,
+                primary_url=reference.primary_url,
+                link_kinds=[link.kind for link in reference.links],
+            )
+        )
+        if reference.primary_url and reference.primary_url not in primary_urls:
+            primary_urls.append(reference.primary_url)
+
+    section.reference_count = len(section.reference_ids)
+    section.primary_urls = primary_urls
+    section.sources = sources
+    return section
 
 
 def _normalize_href(article: FetchedArticle, href: str) -> str:
@@ -382,16 +441,23 @@ def normalize_article(article: FetchedArticle) -> Document:
 
     in_lead = True
     preserve_list_links = False
+    sections: list[SectionEvidence] = []
+    current_section = SectionEvidence(section_id="lead", heading="Lead", level=1)
+
     for node in body.find_all(["h2", "h3", "p", "ul", "ol", "figure"], recursive=True):
         if node.find_parent("table") is not None:
             continue
         if node.find_parent("ol", class_="references") is not None:
             continue
 
+        reference_ids = _extract_node_reference_ids(node)
+        _append_section_reference_ids(current_section, reference_ids)
+
         if node.name == "p":
             text = _clean_prose_text(node)
             if not text or _looks_like_orphan_date(text):
                 continue
+            current_section.paragraph_count += 1
             if in_lead:
                 document.summary.append(text)
             else:
@@ -400,8 +466,14 @@ def normalize_article(article: FetchedArticle) -> Document:
             heading_text = _clean_text(node)
             if _is_references_heading(heading_text, article.resolution.lang):
                 continue
+            sections.append(current_section)
             in_lead = False
             preserve_list_links = _preserve_links_for_heading(heading_text, article.resolution.lang)
+            current_section = SectionEvidence(
+                section_id=_slugify_section_id(heading_text),
+                heading=heading_text,
+                level=2 if node.name == "h2" else 3,
+            )
             document.blocks.append(
                 HeadingBlock(level=2 if node.name == "h2" else 3, text=heading_text)
             )
@@ -436,6 +508,11 @@ def normalize_article(article: FetchedArticle) -> Document:
                     links=links,
                 )
             )
+
+    sections.append(current_section)
+    document.section_evidence = [
+        _finalize_section(section, document.references) for section in sections
+    ]
 
     if not document.summary:
         document.warnings.append("No lead summary paragraph detected.")
