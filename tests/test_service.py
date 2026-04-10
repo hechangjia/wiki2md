@@ -83,6 +83,7 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
     )
 
     assert isinstance(result, ConversionResult)
+    assert Path(result.output_dir) == tmp_path / "output" / "people" / "andrej-karpathy"
     assert Path(result.article_path).exists()
     assert Path(result.references_path).exists()
     assert (Path(result.output_dir) / "infobox.json").exists()
@@ -183,7 +184,7 @@ def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: 
     result = service.convert_url(
         "https://en.wikipedia.org/wiki/Andrej_Karpathy",
         context=ConversionContext(
-            relative_output_dir="person/people-ai/karpathy-final",
+            relative_output_dir="people/karpathy-final",
             page_type="person",
             output_group="people-ai",
             manifest_slug="karpathy-manifest",
@@ -223,7 +224,7 @@ def test_convert_url_derives_resolved_slug_from_relative_output_dir(
     result = service.convert_url(
         "https://en.wikipedia.org/wiki/Andrej_Karpathy",
         context=ConversionContext(
-            relative_output_dir="person/people-ai/custom-slug",
+            relative_output_dir="people/custom-slug",
             page_type="person",
             output_group="people-ai",
             manifest_slug="karpathy-manifest",

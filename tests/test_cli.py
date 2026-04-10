@@ -123,7 +123,7 @@ def test_batch_command_processes_non_empty_lines(monkeypatch, tmp_path: Path) ->
                     manifest_entry=BatchManifestEntry(
                         url="https://en.wikipedia.org/wiki/Andrej_Karpathy"
                     ),
-                    relative_output_dir="person/default/andrej-karpathy",
+                    relative_output_dir="people/andrej-karpathy",
                 ),
                 BatchStateEntry(
                     entry_key="failed-1",
@@ -133,7 +133,7 @@ def test_batch_command_processes_non_empty_lines(monkeypatch, tmp_path: Path) ->
                         url="https://en.wikipedia.org/wiki/Fei-Fei_Li"
                     ),
                     error="Fetch failed",
-                    relative_output_dir="person/default/fei-fei-li",
+                    relative_output_dir="people/fei-fei-li",
                 ),
                 BatchStateEntry(
                     entry_key="skipped-1",
@@ -142,7 +142,7 @@ def test_batch_command_processes_non_empty_lines(monkeypatch, tmp_path: Path) ->
                     manifest_entry=BatchManifestEntry(
                         url="https://en.wikipedia.org/wiki/Yann_LeCun"
                     ),
-                    relative_output_dir="person/default/yann-lecun",
+                    relative_output_dir="people/yann-lecun",
                 ),
                 BatchStateEntry(
                     entry_key="invalid-2",

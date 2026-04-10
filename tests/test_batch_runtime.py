@@ -67,6 +67,8 @@ def test_run_batch_continues_on_failure_and_skips_existing(tmp_path: Path) -> No
     statuses = {entry.url: entry.status for entry in result.entries if entry.url}
     assert statuses["https://en.wikipedia.org/wiki/Andrej_Karpathy"] == "success"
     assert statuses["https://en.wikipedia.org/wiki/Fei-Fei_Li"] == "skipped_existing"
+    assert (tmp_path / "output" / "people" / "fei-fei-li").exists()
+    assert not existing_dir.exists()
 
 
 def test_run_batch_retries_fetch_errors(tmp_path: Path) -> None:
@@ -112,16 +114,16 @@ def test_run_batch_resume_avoids_rerunning_success_and_skipped_existing(tmp_path
             totals={"success": 1, "skipped_existing": 1},
             entries=[
                 {
-                    "entry_key": "https://en.wikipedia.org/wiki/Andrej_Karpathy|person/default/andrej-karpathy",
+                    "entry_key": "https://en.wikipedia.org/wiki/Andrej_Karpathy|people/andrej-karpathy",
                     "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
                     "status": "success",
-                    "relative_output_dir": "person/default/andrej-karpathy",
+                    "relative_output_dir": "people/andrej-karpathy",
                 },
                 {
-                    "entry_key": "https://en.wikipedia.org/wiki/Fei-Fei_Li|person/default/fei-fei-li",
+                    "entry_key": "https://en.wikipedia.org/wiki/Fei-Fei_Li|people/fei-fei-li",
                     "url": "https://en.wikipedia.org/wiki/Fei-Fei_Li",
                     "status": "skipped_existing",
-                    "relative_output_dir": "person/default/fei-fei-li",
+                    "relative_output_dir": "people/fei-fei-li",
                 },
             ],
         ).model_dump_json(indent=2),
@@ -167,16 +169,16 @@ def test_run_batch_resume_drops_stale_entries_not_in_current_manifest(tmp_path: 
             totals={"success": 2},
             entries=[
                 {
-                    "entry_key": "https://en.wikipedia.org/wiki/Andrej_Karpathy|person/default/andrej-karpathy",
+                    "entry_key": "https://en.wikipedia.org/wiki/Andrej_Karpathy|people/andrej-karpathy",
                     "url": "https://en.wikipedia.org/wiki/Andrej_Karpathy",
                     "status": "success",
-                    "relative_output_dir": "person/default/andrej-karpathy",
+                    "relative_output_dir": "people/andrej-karpathy",
                 },
                 {
-                    "entry_key": "https://en.wikipedia.org/wiki/Fei-Fei_Li|person/default/fei-fei-li",
+                    "entry_key": "https://en.wikipedia.org/wiki/Fei-Fei_Li|people/fei-fei-li",
                     "url": "https://en.wikipedia.org/wiki/Fei-Fei_Li",
                     "status": "success",
-                    "relative_output_dir": "person/default/fei-fei-li",
+                    "relative_output_dir": "people/fei-fei-li",
                 },
             ],
         ).model_dump_json(indent=2),

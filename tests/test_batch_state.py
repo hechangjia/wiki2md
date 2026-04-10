@@ -51,8 +51,8 @@ def test_save_and_load_batch_state_roundtrip(tmp_path: Path) -> None:
                 entry_key="entry-1",
                 url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
                 status="success",
-                relative_output_dir="person/default/andrej-karpathy",
-                output_dir=str(tmp_path / "output" / "person" / "default" / "andrej-karpathy"),
+                relative_output_dir="people/andrej-karpathy",
+                output_dir=str(tmp_path / "output" / "people" / "andrej-karpathy"),
             )
         ],
     )
