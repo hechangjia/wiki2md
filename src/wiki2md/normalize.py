@@ -356,7 +356,7 @@ def normalize_article(article: FetchedArticle) -> Document:
     in_lead = True
     preserve_list_links = False
     for node in body.find_all(["h2", "h3", "p", "ul", "ol", "figure"], recursive=True):
-        if node.find_parent("table", class_="infobox") is not None:
+        if node.find_parent("table") is not None:
             continue
         if node.find_parent("ol", class_="references") is not None:
             continue

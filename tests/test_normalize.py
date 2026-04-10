@@ -141,6 +141,57 @@ def test_normalize_article_extracts_chinese_infobox_fields() -> None:
     )
 
 
+def test_normalize_article_skips_sidebar_lists_inside_tables() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Elon_Musk",
+            normalized_url="https://en.wikipedia.org/wiki/Elon_Musk",
+            lang="en",
+            title="Elon_Musk",
+            slug="elon-musk",
+        ),
+        canonical_title="Elon Musk",
+        html="""
+        <html>
+          <head><title>Elon Musk</title></head>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Elon Musk is a businessman and entrepreneur.</p>
+              <table class="sidebar">
+                <tbody>
+                  <tr>
+                    <td class="sidebar-content hlist">
+                      <ul>
+                        <li>Awards and honors</li>
+                        <li>Business career</li>
+                        <li>Wealth
+                          <ul>
+                            <li>Foundation</li>
+                          </ul>
+                        </li>
+                      </ul>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <h2>Early life</h2>
+              <p>He was born in Pretoria, South Africa.</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["Elon Musk is a businessman and entrepreneur."]
+    assert document.blocks == [
+        HeadingBlock(level=2, text="Early life"),
+        ParagraphBlock(text="He was born in Pretoria, South Africa."),
+    ]
+
+
 def test_normalize_article_strips_inline_citation_markers_from_prose() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
