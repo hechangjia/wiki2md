@@ -177,7 +177,9 @@ def test_readme_points_to_examples_index_and_artifact_contract() -> None:
     assert "infobox.json" in readme
     assert "`assets/`" in readme
     assert "examples/andrej-karpathy/" in readme
-    assert "examples/batch/person-manifest.jsonl" in readme
+    assert "examples/manifests/turing-award-core.jsonl" in readme
+    assert "examples/manifests/fields-medal-core.jsonl" in readme
+    assert "examples/manifests/nobel-physics-core.jsonl" in readme
 
 
 def test_example_article_has_frontmatter_and_clean_prose() -> None:
@@ -235,13 +237,26 @@ def test_example_meta_matches_serialized_metadata() -> None:
     assert payload == expected
 
 
-def test_batch_manifest_example_exists_and_is_valid_jsonl() -> None:
-    manifest_path = Path("examples/batch/person-manifest.jsonl")
-    lines = manifest_path.read_text(encoding="utf-8").splitlines()
-    non_empty_lines = [line for line in lines if line.strip()]
+def test_readme_uses_people_output_contract_for_single_and_batch_examples() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert len(non_empty_lines) >= 2
-    payloads = [json.loads(line) for line in non_empty_lines]
-    assert all("url" in payload for payload in payloads)
-    assert all(payload.get("page_type", "person") == "person" for payload in payloads)
-    assert all("output_group" in payload for payload in payloads)
+    assert "output/\n  people/" in readme
+    assert "output/people/<slug>/" in readme
+    assert "person/default/" not in readme
+
+
+def test_award_manifests_exist_and_are_valid_jsonl() -> None:
+    manifest_expectations = {
+        "examples/manifests/turing-award-core.jsonl": "turing-award",
+        "examples/manifests/fields-medal-core.jsonl": "fields-medal",
+        "examples/manifests/nobel-physics-core.jsonl": "nobel-physics",
+    }
+
+    for path, output_group in manifest_expectations.items():
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
+        payloads = [json.loads(line) for line in lines if line.strip()]
+        assert len(payloads) >= 10
+        assert all("url" in payload for payload in payloads)
+        assert all(payload.get("page_type", "person") == "person" for payload in payloads)
+        assert all(payload.get("output_group") == output_group for payload in payloads)
+        assert all(payload.get("slug") for payload in payloads)

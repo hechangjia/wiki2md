@@ -108,7 +108,7 @@ def test_write_bundle_uses_custom_relative_output_dir(tmp_path: Path) -> None:
 
     result = write_bundle(
         output_root=tmp_path / "output",
-        relative_output_dir=Path("person/people-ai/karpathy-final"),
+        relative_output_dir=Path("people/karpathy-final"),
         resolution=resolution,
         markdown="# Andrej Karpathy\n",
         metadata=metadata,
@@ -118,9 +118,7 @@ def test_write_bundle_uses_custom_relative_output_dir(tmp_path: Path) -> None:
         overwrite=False,
     )
 
-    assert Path(result.output_dir) == (
-        tmp_path / "output" / "person" / "people-ai" / "karpathy-final"
-    )
+    assert Path(result.output_dir) == (tmp_path / "output" / "people" / "karpathy-final")
 
 
 @pytest.mark.parametrize(
@@ -243,7 +241,7 @@ def test_write_bundle_writes_section_evidence_and_sources(tmp_path: Path) -> Non
 
     result = write_bundle(
         output_root=tmp_path / "output",
-        relative_output_dir=Path("person/default/example"),
+        relative_output_dir=Path("people/example"),
         resolution=resolution,
         markdown="# Example\n",
         metadata=metadata,

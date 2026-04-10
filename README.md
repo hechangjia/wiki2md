@@ -42,7 +42,7 @@ cd wiki2md
 uv sync --extra dev
 uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
-uv run wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+uv run wiki2md batch examples/manifests/turing-award-core.jsonl --output-dir output
 ```
 
 ## 核心命令
@@ -58,7 +58,7 @@ wiki2md batch <file>
 ```bash
 uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
-uv run wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+uv run wiki2md batch examples/manifests/turing-award-core.jsonl --output-dir output
 ```
 
 ## 单篇人物示例
@@ -95,7 +95,9 @@ Andrej Karpathy is a computer scientist.
 
 ## 批量语料工作流
 
-`batch` 同时支持纯 `txt` URL 列表和结构化 `jsonl` manifest。推荐把单篇验证通过后的 URL 清单沉淀成 `examples/batch/person-manifest.jsonl` 这类输入，再统一输出到 `output/`。
+`batch` 同时支持纯 `txt` URL 列表和结构化 `jsonl` manifest。推荐直接从仓库内置的奖项入口 manifests 起步，例如图灵奖、菲尔兹奖、诺贝尔物理学奖，再按你的主题继续扩展。
+
+单篇和批量现在都会统一落到 `output/people/<slug>/`。`output_group` 会保留在 `meta.json`、frontmatter 和 batch report 中，但不再参与目录层级。
 
 `txt` 模式每行一个 URL，忽略空行和 `#` 注释：
 
@@ -106,14 +108,19 @@ uv run wiki2md batch urls.txt --output-dir output
 `jsonl` 模式支持每行附带 `page_type`、`slug`、`tags`、`output_group` 等字段：
 
 ```bash
-uv run wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
+uv run wiki2md batch examples/manifests/turing-award-core.jsonl --output-dir output
 ```
 
 示例 `jsonl` 行：
 
 ```json
-{"url":"https://en.wikipedia.org/wiki/Andrej_Karpathy","page_type":"person","slug":"andrej-karpathy","tags":["ai","person"],"output_group":"people-ai"}
+{"url":"https://en.wikipedia.org/wiki/Geoffrey_Hinton","page_type":"person","slug":"geoffrey-hinton","tags":["computer-science","ai","turing-award"],"output_group":"turing-award"}
 ```
+
+内置 starter manifests：
+- `examples/manifests/turing-award-core.jsonl`
+- `examples/manifests/fields-medal-core.jsonl`
+- `examples/manifests/nobel-physics-core.jsonl`
 
 常用参数：
 - `--output-dir`：指定输出根目录，默认 `output`
@@ -125,7 +132,7 @@ uv run wiki2md batch examples/batch/person-manifest.jsonl --output-dir output
 恢复执行示例：
 
 ```bash
-uv run wiki2md batch examples/batch/person-manifest.jsonl \
+uv run wiki2md batch examples/manifests/turing-award-core.jsonl \
   --output-dir output \
   --resume output/.wiki2md/batches/<batch-id>/state.json
 ```
@@ -159,7 +166,9 @@ uv run wiki2md batch output/.wiki2md/batches/<batch-id>/failed.jsonl --output-di
 
 示例入口：
 - `examples/andrej-karpathy/`
-- `examples/batch/person-manifest.jsonl`
+- `examples/manifests/turing-award-core.jsonl`
+- `examples/manifests/fields-medal-core.jsonl`
+- `examples/manifests/nobel-physics-core.jsonl`
 
 ## 发布流程
 
