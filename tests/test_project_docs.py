@@ -98,6 +98,7 @@ def test_readme_mentions_primary_cli_commands() -> None:
     assert "wiki2md convert <url>" in readme
     assert "wiki2md inspect <url>" in readme
     assert "wiki2md batch <file>" in readme
+    assert "wiki2md batch discover <url-or-preset>" in readme
     assert "primary_url" in readme
     assert "kind" in readme
     assert "jsonl" in readme
@@ -180,6 +181,17 @@ def test_readme_points_to_examples_index_and_artifact_contract() -> None:
     assert "examples/manifests/turing-award-core.jsonl" in readme
     assert "examples/manifests/fields-medal-core.jsonl" in readme
     assert "examples/manifests/nobel-physics-core.jsonl" in readme
+
+
+def test_readme_documents_discovery_to_batch_workflow() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "## 人物发现工作流" in readme
+    assert "wiki2md batch discover turing-award --output-dir output" in readme
+    assert "output/discovery/turing-award/manifest.jsonl" in readme
+    assert "wiki2md batch output/discovery/turing-award/manifest.jsonl --output-dir output" in (
+        readme
+    )
 
 
 def test_example_article_has_frontmatter_and_clean_prose() -> None:

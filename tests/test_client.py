@@ -102,6 +102,53 @@ def test_close_does_not_close_injected_http_client() -> None:
 
 
 @respx.mock
+def test_fetch_html_url_retries_transport_errors_then_succeeds(monkeypatch) -> None:
+    monkeypatch.setattr("wiki2md.client.time.sleep", lambda *_args, **_kwargs: None)
+    route = respx.get("https://en.wikipedia.org/w/rest.php/v1/page/Turing_Award/html").mock(
+        side_effect=[
+            httpx.ConnectError("boom"),
+            httpx.Response(200, text="<html><body>Turing Award</body></html>"),
+        ]
+    )
+
+    html = MediaWikiClient(
+        user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)"
+    ).fetch_html_url("https://en.wikipedia.org/wiki/Turing_Award")
+
+    assert "Turing Award" in html
+    assert route.call_count == 2
+
+
+@respx.mock
+def test_fetch_html_url_does_not_retry_non_retriable_status_errors(monkeypatch) -> None:
+    monkeypatch.setattr("wiki2md.client.time.sleep", lambda *_args, **_kwargs: None)
+    route = respx.get("https://en.wikipedia.org/w/rest.php/v1/page/Turing_Award/html").mock(
+        return_value=httpx.Response(404, text="missing")
+    )
+
+    with pytest.raises(FetchError, match="404"):
+        MediaWikiClient(user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)").fetch_html_url(
+            "https://en.wikipedia.org/wiki/Turing_Award"
+        )
+
+    assert route.call_count == 1
+
+
+@respx.mock
+def test_fetch_html_url_uses_rest_html_endpoint_for_list_pages() -> None:
+    route = respx.get(
+        "https://en.wikipedia.org/w/rest.php/v1/page/List_of_Turing_Award_laureates/html"
+    ).mock(return_value=httpx.Response(200, text="<html><body>List page</body></html>"))
+
+    html = MediaWikiClient(
+        user_agent="wiki2md-test-bot/0.1 (2136414704@qq.com)"
+    ).fetch_html_url("https://en.wikipedia.org/wiki/List_of_Turing_Award_laureates")
+
+    assert "List page" in html
+    assert route.call_count == 1
+
+
+@respx.mock
 def test_fetch_article_raises_fetch_error_on_invalid_json() -> None:
     resolution = UrlResolution(
         source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",

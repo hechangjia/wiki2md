@@ -6,6 +6,7 @@ import typer
 from wiki2md.batch_models import BatchRunConfig
 from wiki2md.batch_runtime import run_batch
 from wiki2md.client import MediaWikiClient
+from wiki2md.discovery_service import run_discovery
 from wiki2md.service import Wiki2MdService
 
 DEFAULT_OUTPUT_DIR = Path("output")
@@ -61,7 +62,8 @@ def inspect(
 
 @app.command()
 def batch(
-    file: Path,
+    file: str = typer.Argument(...),
+    source: str | None = typer.Argument(None),
     output_dir: Path = typer.Option(DEFAULT_OUTPUT_DIR, "--output-dir"),
     overwrite: bool = typer.Option(False, "--overwrite"),
     concurrency: int = typer.Option(4, "--concurrency"),
@@ -69,6 +71,22 @@ def batch(
     skip_invalid: bool = typer.Option(False, "--skip-invalid"),
 ) -> None:
     """Process batch manifest files (txt/jsonl) via the batch runtime."""
+    if file == "discover":
+        if not source:
+            raise typer.BadParameter("batch discover requires a preset name or source URL")
+
+        bundle_dir = run_discovery(
+            source,
+            output_root=output_dir,
+        )
+        manifest_path = Path(output_dir.name) / "discovery" / bundle_dir.name / "manifest.jsonl"
+        typer.echo(manifest_path)
+        typer.echo(f"wiki2md batch {manifest_path} --output-dir {output_dir.name}")
+        return
+
+    if source is not None:
+        raise typer.BadParameter("batch only accepts a manifest file unless using 'discover'")
+
     config = BatchRunConfig(
         concurrency=concurrency,
         overwrite=overwrite,
@@ -76,7 +94,7 @@ def batch(
         max_retries=2,
     )
     result = run_batch(
-        manifest_path=file,
+        manifest_path=Path(file),
         output_root=output_dir,
         service_factory=lambda: build_service(output_dir),
         config=config,

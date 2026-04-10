@@ -204,3 +204,60 @@ def test_batch_command_processes_non_empty_lines(monkeypatch, tmp_path: Path) ->
         "invalid": 1,
         "duplicate": 1,
     }
+
+
+def test_batch_discovery_command_accepts_builtin_preset(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_discovery(source: str, output_root: Path):
+        captured["source"] = source
+        captured["output_root"] = output_root
+        bundle_dir = output_root / "discovery" / "turing-award"
+        bundle_dir.mkdir(parents=True, exist_ok=True)
+        (bundle_dir / "manifest.jsonl").write_text("{}", encoding="utf-8")
+        return bundle_dir
+
+    monkeypatch.setattr("wiki2md.cli.run_discovery", fake_run_discovery)
+
+    result = runner.invoke(
+        app,
+        ["batch", "discover", "turing-award", "--output-dir", str(tmp_path / "output")],
+    )
+
+    assert result.exit_code == 0
+    assert captured["source"] == "turing-award"
+    assert captured["output_root"] == tmp_path / "output"
+    assert "output/discovery/turing-award/manifest.jsonl" in result.stdout
+    assert "wiki2md batch output/discovery/turing-award/manifest.jsonl --output-dir output" in (
+        result.stdout
+    )
+
+
+def test_batch_discovery_command_accepts_source_url(monkeypatch, tmp_path: Path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_run_discovery(source: str, output_root: Path):
+        captured["source"] = source
+        captured["output_root"] = output_root
+        bundle_dir = output_root / "discovery" / "fields-medal"
+        bundle_dir.mkdir(parents=True, exist_ok=True)
+        (bundle_dir / "manifest.jsonl").write_text("{}", encoding="utf-8")
+        return bundle_dir
+
+    monkeypatch.setattr("wiki2md.cli.run_discovery", fake_run_discovery)
+
+    result = runner.invoke(
+        app,
+        [
+            "batch",
+            "discover",
+            "https://en.wikipedia.org/wiki/Fields_Medal",
+            "--output-dir",
+            str(tmp_path / "output"),
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert captured["source"] == "https://en.wikipedia.org/wiki/Fields_Medal"
+    assert captured["output_root"] == tmp_path / "output"
+    assert "output/discovery/fields-medal/manifest.jsonl" in result.stdout

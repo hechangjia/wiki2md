@@ -1,12 +1,17 @@
+import time
 from collections.abc import Mapping
 from types import TracebackType
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, unquote, urlparse
 
 import httpx
 
 from wiki2md.errors import FetchError
 from wiki2md.models import FetchedArticle, MediaItem, UrlResolution
+from wiki2md.urls import SUPPORTED_HOSTS
+
+HTML_FETCH_MAX_ATTEMPTS = 3
+HTML_FETCH_BASE_RETRY_DELAY_SECONDS = 1.0
 
 
 def _normalize_media_url(url: str | None) -> str | None:
@@ -195,3 +200,73 @@ class MediaWikiClient:
             thumbnail_url=_normalize_media_url(thumbnail_url),
             mime_type=mime_type if isinstance(mime_type, str) else None,
         )
+
+    def fetch_html_url(self, url: str) -> str:
+        fetch_url = _page_html_endpoint_for_url(url)
+        last_error: httpx.HTTPError | None = None
+
+        for attempt in range(1, HTML_FETCH_MAX_ATTEMPTS + 1):
+            try:
+                response = self._client.get(fetch_url)
+                response.raise_for_status()
+                return response.text
+            except httpx.HTTPError as exc:
+                last_error = exc
+                if attempt >= HTML_FETCH_MAX_ATTEMPTS or not _is_retriable_html_error(exc):
+                    break
+                time.sleep(HTML_FETCH_BASE_RETRY_DELAY_SECONDS * (2 ** (attempt - 1)))
+
+        assert last_error is not None
+        raise FetchError(
+            f"Failed to fetch page HTML from {fetch_url}: {last_error}"
+        ) from last_error
+
+    def fetch_page_summary(self, url: str) -> dict[str, Any]:
+        summary_url = _page_summary_endpoint_for_url(url)
+        last_error: httpx.HTTPError | None = None
+
+        for attempt in range(1, HTML_FETCH_MAX_ATTEMPTS + 1):
+            try:
+                response = self._client.get(summary_url)
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    raise FetchError(
+                        "Invalid payload type for page summary from "
+                        f"{summary_url}: expected object"
+                    )
+                return payload
+            except ValueError as exc:
+                raise FetchError(f"Invalid JSON for page summary from {summary_url}") from exc
+            except httpx.HTTPError as exc:
+                last_error = exc
+                if attempt >= HTML_FETCH_MAX_ATTEMPTS or not _is_retriable_html_error(exc):
+                    break
+                time.sleep(HTML_FETCH_BASE_RETRY_DELAY_SECONDS * (2 ** (attempt - 1)))
+
+        assert last_error is not None
+        raise FetchError(
+            f"Failed to fetch page summary from {summary_url}: {last_error}"
+        ) from last_error
+
+
+def _is_retriable_html_error(exc: httpx.HTTPError) -> bool:
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code == 429 or 500 <= exc.response.status_code < 600
+    return isinstance(exc, httpx.TransportError)
+
+
+def _page_html_endpoint_for_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.netloc in SUPPORTED_HOSTS and parsed.path.startswith("/wiki/"):
+        title = unquote(parsed.path.removeprefix("/wiki/")).replace(" ", "_")
+        return f"https://{parsed.netloc}/w/rest.php/v1/page/{quote(title, safe=':_()')}/html"
+    return url
+
+
+def _page_summary_endpoint_for_url(url: str) -> str:
+    parsed = urlparse(url)
+    if parsed.netloc in SUPPORTED_HOSTS and parsed.path.startswith("/wiki/"):
+        title = unquote(parsed.path.removeprefix("/wiki/")).replace(" ", "_")
+        return f"https://{parsed.netloc}/api/rest_v1/page/summary/{quote(title, safe=':_()')}"
+    return url

@@ -51,6 +51,7 @@ uv run wiki2md batch examples/manifests/turing-award-core.jsonl --output-dir out
 wiki2md convert <url>
 wiki2md inspect <url>
 wiki2md batch <file>
+wiki2md batch discover <url-or-preset>
 ```
 
 `inspect` 只输出 JSON 元数据，不写入本地文件；`convert` 会落地单篇目录；`batch` 适合持续构建语料库。
@@ -59,6 +60,7 @@ wiki2md batch <file>
 uv run wiki2md convert "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 uv run wiki2md inspect "https://en.wikipedia.org/wiki/Andrej_Karpathy"
 uv run wiki2md batch examples/manifests/turing-award-core.jsonl --output-dir output
+uv run wiki2md batch discover turing-award --output-dir output
 ```
 
 ## 单篇人物示例
@@ -92,6 +94,36 @@ Andrej Karpathy is a computer scientist.
 ```
 
 如果你想先看完整输出，再对接自己的管线，可以直接从 `examples/andrej-karpathy/` 开始验证 `article.md`、`meta.json`、`references.json` 和 `infobox.json` 的消费方式。
+
+## 人物发现工作流
+
+当你不想只靠自己记忆名人时，可以先从奖项页、列表页或机构入口页生成一份候选 manifest，再交给现有 `batch` 流水线。
+
+```bash
+uv run wiki2md batch discover turing-award --output-dir output
+```
+
+发现产物会落到：
+
+```text
+output/
+  discovery/
+    turing-award/
+      manifest.jsonl
+      index.md
+      discovery.json
+```
+
+其中：
+- `manifest.jsonl` 直接给 `wiki2md batch` 使用
+- `index.md` 方便人工审查和挑选
+- `discovery.json` 保留入口页、候选人、来源页和筛选理由
+
+继续批量抓取：
+
+```bash
+uv run wiki2md batch output/discovery/turing-award/manifest.jsonl --output-dir output
+```
 
 ## 批量语料工作流
 
