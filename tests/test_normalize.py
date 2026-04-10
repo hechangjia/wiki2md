@@ -226,6 +226,39 @@ def test_normalize_article_skips_orphan_date_paragraphs() -> None:
     ]
 
 
+def test_normalize_article_preserves_date_led_prose_paragraphs() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Elon_Musk",
+            normalized_url="https://en.wikipedia.org/wiki/Elon_Musk",
+            lang="en",
+            title="Elon_Musk",
+            slug="elon-musk",
+        ),
+        canonical_title="Elon Musk",
+        html="""
+        <html>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Elon Musk is a businessman and entrepreneur.</p>
+              <h2>X Corp.</h2>
+              <p>April 14, 2022 was the public launch date.</p>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["Elon Musk is a businessman and entrepreneur."]
+    assert document.blocks == [
+        HeadingBlock(level=2, text="X Corp."),
+        ParagraphBlock(text="April 14, 2022 was the public launch date."),
+    ]
+
+
 def test_normalize_article_skips_template_control_fragments() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(

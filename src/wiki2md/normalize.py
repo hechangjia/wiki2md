@@ -69,6 +69,7 @@ _MONTH_NAMES = (
     "november",
     "december",
 )
+_ORPHAN_DATE_RE = re.compile(rf"(?:{'|'.join(_MONTH_NAMES)}) \d{{1,2}}, \d{{4}}")
 _TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
 
 
@@ -130,9 +131,7 @@ def _clean_prose_text(node: Tag) -> str:
 
 def _looks_like_orphan_date(text: str) -> bool:
     normalized = " ".join(text.split()).casefold()
-    if not normalized or "," not in normalized:
-        return False
-    return any(normalized.startswith(f"{month} ") for month in _MONTH_NAMES)
+    return bool(_ORPHAN_DATE_RE.fullmatch(normalized))
 
 
 def _is_template_control_text(text: str) -> bool:
