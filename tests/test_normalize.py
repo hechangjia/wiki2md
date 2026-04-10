@@ -11,12 +11,17 @@ from wiki2md.document import (
     ParagraphBlock,
     ReferenceEntry,
     ReferenceLink,
+    TableBlock,
+    TableCell,
+    TableRow,
 )
 from wiki2md.models import FetchedArticle, UrlResolution
 from wiki2md.normalize import _select_primary_url, normalize_article
 
 FIXTURE = Path(__file__).parent / "fixtures" / "html" / "person_fragment.html"
 FIXTURE_ZH = Path(__file__).parent / "fixtures" / "html" / "person_fragment_zh.html"
+GENERAL_FIXTURE = Path(__file__).parent / "fixtures" / "html" / "general_article_fragment.html"
+LIST_FIXTURE = Path(__file__).parent / "fixtures" / "html" / "list_article_fragment.html"
 
 
 def test_normalize_article_extracts_infobox_fields_and_image() -> None:
@@ -1045,3 +1050,83 @@ def test_select_primary_url_uses_identifier_when_best_available() -> None:
     ]
 
     assert _select_primary_url(links) == "https://doi.org/10.1000/example"
+
+
+def test_normalize_article_preserves_informative_table_for_general_pages() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Linux",
+            normalized_url="https://en.wikipedia.org/wiki/Linux",
+            lang="en",
+            title="Linux",
+            slug="linux",
+        ),
+        canonical_title="Linux",
+        html=GENERAL_FIXTURE.read_text(encoding="utf-8"),
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.title == "Linux"
+    assert document.summary == ["Linux is a family of Unix-like operating systems."]
+    assert document.blocks == [
+        HeadingBlock(level=2, text="Platforms"),
+        ParagraphBlock(text="Linux supports a wide range of hardware architectures."),
+        TableBlock(
+            caption="Supported platforms",
+            rows=[
+                TableRow(
+                    header=True,
+                    cells=[TableCell(text="Architecture"), TableCell(text="Status")],
+                ),
+                TableRow(
+                    header=False,
+                    cells=[TableCell(text="x86-64"), TableCell(text="Supported")],
+                ),
+            ],
+        ),
+        ListBlock(
+            ordered=False,
+            items=[ListItem(text="Servers"), ListItem(text="Embedded systems")],
+        ),
+    ]
+
+
+def test_normalize_article_keeps_meaningful_list_page_blocks_but_drops_navbox_noise() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/List_of_Turing_Award_laureates",
+            normalized_url="https://en.wikipedia.org/wiki/List_of_Turing_Award_laureates",
+            lang="en",
+            title="List_of_Turing_Award_laureates",
+            slug="list-of-turing-award-laureates",
+        ),
+        canonical_title="List of Turing Award laureates",
+        html=LIST_FIXTURE.read_text(encoding="utf-8"),
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["The Turing Award recognizes major contributions to computer science."]
+    assert document.blocks == [
+        HeadingBlock(level=2, text="Laureates"),
+        TableBlock(
+            caption=None,
+            rows=[
+                TableRow(
+                    header=True,
+                    cells=[TableCell(text="Year"), TableCell(text="Laureate")],
+                ),
+                TableRow(
+                    header=False,
+                    cells=[TableCell(text="1966"), TableCell(text="Alan Perlis")],
+                ),
+            ],
+        ),
+        ListBlock(
+            ordered=False,
+            items=[ListItem(text="Donald Knuth"), ListItem(text="Barbara Liskov")],
+        ),
+    ]

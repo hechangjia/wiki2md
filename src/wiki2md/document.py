@@ -33,6 +33,21 @@ class ImageBlock(BaseModel):
     role: Literal["infobox", "body"] = "body"
 
 
+class TableCell(BaseModel):
+    text: str
+
+
+class TableRow(BaseModel):
+    cells: list[TableCell] = Field(default_factory=list)
+    header: bool = False
+
+
+class TableBlock(BaseModel):
+    kind: Literal["table"] = "table"
+    caption: str | None = None
+    rows: list[TableRow] = Field(default_factory=list)
+
+
 class InfoboxLink(BaseModel):
     text: str
     href: str
@@ -76,7 +91,7 @@ class SectionEvidence(BaseModel):
 
 
 DocumentBlock = Annotated[
-    ParagraphBlock | HeadingBlock | ListBlock | ImageBlock,
+    ParagraphBlock | HeadingBlock | ListBlock | ImageBlock | TableBlock,
     Field(discriminator="kind"),
 ]
 

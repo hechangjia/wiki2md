@@ -19,6 +19,9 @@ from wiki2md.document import (
     ReferenceLink,
     SectionEvidence,
     SectionEvidenceSource,
+    TableBlock,
+    TableCell,
+    TableRow,
 )
 from wiki2md.errors import ParseError
 from wiki2md.models import FetchedArticle
@@ -73,6 +76,7 @@ _MONTH_NAMES = (
 )
 _ORPHAN_DATE_RE = re.compile(rf"(?:{'|'.join(_MONTH_NAMES)}) \d{{1,2}}, \d{{4}}")
 _TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
+_TABLE_NOISE_CLASSES = {"infobox", "navbox", "sidebar", "metadata", "vertical-navbox"}
 
 
 def _is_cjk(char: str) -> bool:
@@ -336,6 +340,41 @@ def _extract_image_block(node: Tag, role: Literal["infobox", "body"]) -> ImageBl
     )
 
 
+def _extract_table_block(node: Tag) -> TableBlock | None:
+    classes = set(node.get("class") or [])
+    if classes & _TABLE_NOISE_CLASSES:
+        return None
+
+    caption_node = node.find("caption", recursive=False)
+    caption = _clean_text(caption_node) if caption_node is not None else None
+    rows: list[TableRow] = []
+
+    for row in node.find_all("tr"):
+        if row.find_parent("table") is not node:
+            continue
+
+        cell_nodes = row.find_all(["th", "td"], recursive=False)
+        if not cell_nodes:
+            continue
+
+        cells = [TableCell(text=_clean_prose_text(cell)) for cell in cell_nodes]
+        cells = [cell for cell in cells if cell.text]
+        if not cells:
+            continue
+
+        rows.append(
+            TableRow(
+                cells=cells,
+                header=all(cell.name == "th" for cell in cell_nodes),
+            )
+        )
+
+    if not rows:
+        return None
+
+    return TableBlock(caption=caption, rows=rows)
+
+
 def _extract_infobox_image_block(infobox: Tag) -> ImageBlock | None:
     for cell in infobox.select("td.infobox-image, td.infobox-full-data"):
         block = _extract_image_block(cell, role="infobox")
@@ -450,7 +489,7 @@ def normalize_article(article: FetchedArticle) -> Document:
     sections: list[SectionEvidence] = []
     current_section = SectionEvidence(section_id="lead", heading="Lead", level=1)
 
-    for node in body.find_all(["h2", "h3", "p", "ul", "ol", "figure"], recursive=True):
+    for node in body.find_all(["h2", "h3", "p", "ul", "ol", "figure", "table"], recursive=True):
         if node.find_parent("table") is not None:
             continue
         if node.find_parent("ol", class_="references") is not None:
@@ -501,6 +540,10 @@ def normalize_article(article: FetchedArticle) -> Document:
             image_block = _extract_image_block(node, role="body")
             if image_block is not None:
                 document.blocks.append(image_block)
+        elif node.name == "table":
+            table_block = _extract_table_block(node)
+            if table_block is not None:
+                document.blocks.append(table_block)
 
     for item in body.select("ol.references > li"):
         text = _extract_reference_text(item)
