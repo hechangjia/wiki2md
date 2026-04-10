@@ -121,14 +121,14 @@ def test_readme_uses_chinese_first_structure_and_keeps_english_summary() -> None
     readme = Path("README.md").read_text(encoding="utf-8")
     # Chinese-first homepage layout must stay before the English summary block.
 
-    assert "Wikipedia 人物词条" in readme
+    assert "Wikipedia 条目" in readme
     assert "本地 Markdown" in readme
     assert "## English Summary" in readme
     chinese_headings = [
-        "## 为什么适合 AI / RAG",
+        "## 为什么适合",
         "## 快速开始",
         "## 核心命令",
-        "## 单篇人物示例",
+        "## 单篇转换示例",
         "## 批量语料工作流",
         "## 输出契约",
         "## 发布流程",
@@ -159,14 +159,14 @@ def test_readme_mentions_release_flow_and_trusted_publishing() -> None:
 def test_readme_shows_single_page_example_before_batch_details() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
-    assert "## 单篇人物示例" in readme
+    assert "## 单篇转换示例" in readme
     assert "examples/andrej-karpathy/" in readme
     assert "# Andrej Karpathy" in readme
-    assert "## Profile" in readme
     assert "Andrej Karpathy is a computer scientist." in readme
     assert "`assets/`" in readme
-    assert readme.index("## 单篇人物示例") < readme.index("## 输出契约")
-    assert readme.index("## 单篇人物示例") < readme.index("## 批量语料工作流")
+    assert "Linux" in readme
+    assert readme.index("## 单篇转换示例") < readme.index("## 输出契约")
+    assert readme.index("## 单篇转换示例") < readme.index("## 批量语料工作流")
 
 
 def test_readme_points_to_examples_index_and_artifact_contract() -> None:
@@ -212,12 +212,13 @@ def test_example_references_sidecar_matches_enriched_contract() -> None:
     ]
 
 
-def test_readme_mentions_infobox_sidecar_and_profile_section() -> None:
+def test_readme_mentions_infobox_sidecar_and_article_purity() -> None:
     readme = Path("README.md").read_text(encoding="utf-8")
 
     assert "infobox.json" in readme
-    assert "## Profile" in readme
     assert "      infobox.json" in readme
+    assert "article.md" in readme
+    assert "page_type" in readme
 
 
 def test_example_infobox_sidecar_matches_contract() -> None:
@@ -272,3 +273,11 @@ def test_award_manifests_exist_and_are_valid_jsonl() -> None:
         assert all(payload.get("page_type", "person") == "person" for payload in payloads)
         assert all(payload.get("output_group") == output_group for payload in payloads)
         assert all(payload.get("slug") for payload in payloads)
+
+
+def test_readme_positions_project_as_general_wikipedia_converter() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+
+    assert "通用 Wikipedia -> Markdown 转换工具" in readme
+    assert "并不只限于人物页" in readme
+    assert "page_type" in readme

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Literal
+
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wiki2md.models import UrlResolution

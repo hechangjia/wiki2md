@@ -1109,7 +1109,9 @@ def test_normalize_article_keeps_meaningful_list_page_blocks_but_drops_navbox_no
 
     document = normalize_article(article)
 
-    assert document.summary == ["The Turing Award recognizes major contributions to computer science."]
+    assert document.summary == [
+        "The Turing Award recognizes major contributions to computer science."
+    ]
     assert document.blocks == [
         HeadingBlock(level=2, text="Laureates"),
         TableBlock(

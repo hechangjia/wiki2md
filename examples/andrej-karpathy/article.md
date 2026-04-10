@@ -14,11 +14,6 @@ revid: 67890
 ![Andrej Karpathy portrait](./assets/001-infobox.jpg)
 *Karpathy in 2024*
 
-## Profile
-
-- Born: 3 October 1986 Bratislava, Czechoslovakia
-- Occupation: Computer scientist
-
 Andrej Karpathy is a computer scientist.
 
 ## Career
