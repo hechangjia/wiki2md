@@ -141,6 +141,41 @@ def test_normalize_article_extracts_chinese_infobox_fields() -> None:
     )
 
 
+def test_normalize_article_collects_section_reference_ids() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Lead text.<sup class="reference"><a href="#cite_note-1">[1]</a></sup></p>
+              <h2>Career</h2>
+              <p>Career paragraph.<sup class="reference"><a href="#cite_note-2">[2]</a></sup></p>
+              <ol class="references">
+                <li id="cite_note-1">Lead reference.</li>
+                <li id="cite_note-2">Career reference.</li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [section.heading for section in document.section_evidence] == ["Lead", "Career"]
+    assert document.section_evidence[0].reference_ids == ["cite_note-1"]
+    assert document.section_evidence[1].reference_ids == ["cite_note-2"]
+
+
 def test_normalize_article_skips_sidebar_lists_inside_tables() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
