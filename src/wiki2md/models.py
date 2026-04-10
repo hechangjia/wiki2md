@@ -49,6 +49,19 @@ class SelectedAsset(BaseModel):
     relative_path: str
 
 
+class AssetDownloadFailure(BaseModel):
+    title: str
+    source_url: str
+    filename: str
+    relative_path: str
+    error: str
+
+
+class AssetDownloadReport(BaseModel):
+    downloaded: list[SelectedAsset] = Field(default_factory=list)
+    failures: list[AssetDownloadFailure] = Field(default_factory=list)
+
+
 class ArticleMetadata(BaseModel):
     title: str
     source_url: str

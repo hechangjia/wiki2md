@@ -1,8 +1,10 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from wiki2md.document import (
     Document,
+    ImageBlock,
     InfoboxData,
     InfoboxField,
     InfoboxImage,
@@ -13,6 +15,13 @@ from wiki2md.document import (
 )
 from wiki2md.models import ConversionContext, ConversionResult, SelectedAsset
 from wiki2md.service import Wiki2MdService
+
+
+def _download_report(downloaded=None, failures=None) -> SimpleNamespace:
+    return SimpleNamespace(
+        downloaded=list(downloaded or []),
+        failures=list(failures or []),
+    )
 
 
 class FakeClient:
@@ -70,7 +79,7 @@ def test_convert_url_orchestrates_pipeline(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
     monkeypatch.setattr(
         "wiki2md.service.download_assets",
-        lambda assets, destination, user_agent: None,
+        lambda assets, destination, user_agent: _download_report(),
     )
     monkeypatch.setattr(
         "wiki2md.service.render_markdown",
@@ -147,7 +156,16 @@ def test_convert_url_backfills_infobox_image_path_from_selected_assets(
     )
     monkeypatch.setattr(
         "wiki2md.service.download_assets",
-        lambda assets, destination, user_agent: None,
+        lambda assets, destination, user_agent: _download_report(
+            downloaded=[
+                SelectedAsset(
+                    title="File:Andrej_Karpathy_2024.jpg",
+                    source_url="https://upload.wikimedia.org/example.jpg",
+                    filename="001-infobox.jpg",
+                    relative_path="assets/001-infobox.jpg",
+                )
+            ]
+        ),
     )
     monkeypatch.setattr(
         "wiki2md.service.render_markdown",
@@ -174,7 +192,7 @@ def test_convert_url_threads_batch_context_into_metadata(monkeypatch, tmp_path: 
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
     monkeypatch.setattr(
         "wiki2md.service.download_assets",
-        lambda assets, destination, user_agent: None,
+        lambda assets, destination, user_agent: _download_report(),
     )
     monkeypatch.setattr(
         "wiki2md.service.render_markdown",
@@ -214,7 +232,7 @@ def test_convert_url_derives_resolved_slug_from_relative_output_dir(
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
     monkeypatch.setattr(
         "wiki2md.service.download_assets",
-        lambda assets, destination, user_agent: None,
+        lambda assets, destination, user_agent: _download_report(),
     )
     monkeypatch.setattr(
         "wiki2md.service.render_markdown",
@@ -257,7 +275,7 @@ def test_convert_url_writes_section_evidence_artifacts(monkeypatch, tmp_path: Pa
     monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
     monkeypatch.setattr(
         "wiki2md.service.download_assets",
-        lambda assets, destination, user_agent: None,
+        lambda assets, destination, user_agent: _download_report(),
     )
     monkeypatch.setattr(
         "wiki2md.service.render_markdown",
@@ -269,3 +287,82 @@ def test_convert_url_writes_section_evidence_artifacts(monkeypatch, tmp_path: Pa
     bundle_dir = Path(result.output_dir)
     assert (bundle_dir / "section_evidence.json").exists()
     assert (bundle_dir / "sources.md").exists()
+
+
+def test_convert_url_skips_failed_assets_and_records_warnings(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
+    infobox_asset = SelectedAsset(
+        title="File:Andrej_Karpathy_2024.jpg",
+        source_url="https://upload.wikimedia.org/example/portrait.jpg",
+        filename="001-infobox.jpg",
+        relative_path="assets/001-infobox.jpg",
+    )
+    body_asset = SelectedAsset(
+        title="File:Karpathy_talk.jpg",
+        source_url="https://upload.wikimedia.org/example/talk.jpg",
+        filename="002-image.jpg",
+        relative_path="assets/002-image.jpg",
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.normalize_article",
+        lambda article: Document(
+            title="Andrej Karpathy",
+            infobox=InfoboxData(
+                title="Andrej Karpathy",
+                image=InfoboxImage(
+                    title=infobox_asset.title,
+                    alt="Portrait",
+                    caption="Karpathy in 2024",
+                ),
+                fields=[],
+            ),
+            summary=["Andrej Karpathy is a computer scientist."],
+            blocks=[
+                ImageBlock(
+                    title=body_asset.title,
+                    alt="Talk photo",
+                    caption="Karpathy speaking",
+                    role="body",
+                )
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.select_assets",
+        lambda document, media: [infobox_asset, body_asset],
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: _download_report(
+            downloaded=[body_asset],
+            failures=[
+                SimpleNamespace(
+                    title=infobox_asset.title,
+                    source_url=infobox_asset.source_url,
+                    filename=infobox_asset.filename,
+                    relative_path=infobox_asset.relative_path,
+                    error="HTTP 429",
+                )
+            ],
+        ),
+    )
+
+    result = service.convert_url("https://en.wikipedia.org/wiki/Andrej_Karpathy")
+
+    article_text = Path(result.article_path).read_text(encoding="utf-8")
+    meta_payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
+    infobox_payload = json.loads(
+        (Path(result.output_dir) / "infobox.json").read_text(encoding="utf-8")
+    )
+
+    assert "./assets/001-infobox.jpg" not in article_text
+    assert "./assets/002-image.jpg" in article_text
+    assert meta_payload["image_manifest"] == [
+        {"title": body_asset.title, "path": body_asset.relative_path}
+    ]
+    assert infobox_payload["image"]["path"] is None
+    assert any("File:Andrej_Karpathy_2024.jpg" in warning for warning in result.warnings)
+    assert any("HTTP 429" in warning for warning in result.warnings)

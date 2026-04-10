@@ -51,6 +51,10 @@ def _existing_conversion_result(output_dir: Path) -> ConversionResult:
     )
 
 
+def _asset_warning(title: str, error: str) -> str:
+    return f"Skipped asset '{title}' after download failure: {error}"
+
+
 class Wiki2MdService:
     def __init__(self, client: MediaWikiClient, output_root: Path) -> None:
         self.client = client
@@ -88,14 +92,23 @@ class Wiki2MdService:
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)
         selected_assets = select_assets(document, article.media)
-        asset_map = {asset.title: asset.relative_path for asset in selected_assets}
-        document = _with_infobox_asset_paths(document, asset_map)
 
         staging_root = Path(tempfile.mkdtemp(prefix="wiki2md-"))
         staging_assets_dir = staging_root / "assets"
 
         try:
-            download_assets(selected_assets, staging_assets_dir, user_agent=self.client.user_agent)
+            download_report = download_assets(
+                selected_assets,
+                staging_assets_dir,
+                user_agent=self.client.user_agent,
+            )
+            asset_map = {asset.title: asset.relative_path for asset in download_report.downloaded}
+            document = _with_infobox_asset_paths(document, asset_map)
+            warnings = [*document.warnings]
+            warnings.extend(
+                _asset_warning(failure.title, failure.error)
+                for failure in download_report.failures
+            )
 
             metadata = ArticleMetadata(
                 title=article.canonical_title,
@@ -106,9 +119,10 @@ class Wiki2MdService:
                 revid=article.revid,
                 page_type=context.page_type if context is not None else "person",
                 image_manifest=[
-                    {"title": asset.title, "path": asset.relative_path} for asset in selected_assets
+                    {"title": asset.title, "path": asset.relative_path}
+                    for asset in download_report.downloaded
                 ],
-                warnings=document.warnings,
+                warnings=warnings,
                 cleanup_stats={
                     "blocks": len(document.blocks),
                     "references": len(document.references),
