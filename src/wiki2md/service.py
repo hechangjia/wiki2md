@@ -8,6 +8,10 @@ from wiki2md.client import MediaWikiClient
 from wiki2md.document import Document
 from wiki2md.models import ArticleMetadata, ConversionContext, ConversionResult, InspectionResult
 from wiki2md.normalize import normalize_article
+from wiki2md.output_paths import (
+    canonical_people_relative_output_dir,
+    ensure_canonical_people_output_dir,
+)
 from wiki2md.render_markdown import render_markdown
 from wiki2md.render_sources import render_sources_markdown
 from wiki2md.urls import resolve_wikipedia_url
@@ -35,6 +39,18 @@ def _with_infobox_asset_paths(document: Document, asset_map: dict[str, str]) -> 
     )
 
 
+def _existing_conversion_result(output_dir: Path) -> ConversionResult:
+    assets_dir = output_dir / "assets"
+    asset_count = len(list(assets_dir.iterdir())) if assets_dir.exists() else 0
+    return ConversionResult(
+        output_dir=str(output_dir),
+        article_path=str(output_dir / "article.md"),
+        meta_path=str(output_dir / "meta.json"),
+        references_path=str(output_dir / "references.json"),
+        asset_count=asset_count,
+    )
+
+
 class Wiki2MdService:
     def __init__(self, client: MediaWikiClient, output_root: Path) -> None:
         self.client = client
@@ -57,11 +73,17 @@ class Wiki2MdService:
         context: ConversionContext | None = None,
     ) -> ConversionResult:
         resolution = resolve_wikipedia_url(url)
-        relative_output_dir = normalize_relative_output_dir(Path("people") / resolution.slug)
+        relative_output_dir = canonical_people_relative_output_dir(resolution.slug)
         resolved_slug: str | None = None
         if context is not None:
             relative_output_dir = normalize_relative_output_dir(Path(context.relative_output_dir))
             resolved_slug = relative_output_dir.name
+        final_output_dir = ensure_canonical_people_output_dir(
+            self.output_root,
+            relative_output_dir,
+        )
+        if final_output_dir.exists() and not overwrite:
+            return _existing_conversion_result(final_output_dir)
 
         article = self.client.fetch_article(resolution)
         document = normalize_article(article)

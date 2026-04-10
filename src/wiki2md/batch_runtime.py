@@ -20,6 +20,7 @@ from wiki2md.batch_state import (
 )
 from wiki2md.errors import FetchError
 from wiki2md.models import ConversionContext
+from wiki2md.output_paths import ensure_canonical_people_output_dir
 
 
 def _entry_totals(entries: list[BatchStateEntry]) -> dict[str, int]:
@@ -66,7 +67,7 @@ def _run_task(
     config: BatchRunConfig,
     batch_id: str,
 ) -> BatchStateEntry:
-    target_dir = output_root / task.relative_output_dir
+    target_dir = ensure_canonical_people_output_dir(output_root, Path(task.relative_output_dir))
     if target_dir.exists() and not config.overwrite:
         return BatchStateEntry(
             entry_key=task.entry_key,

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from wiki2md.batch_models import BatchManifestEntry, DuplicateBatchEntry, PlannedBatchTask
+from wiki2md.output_paths import canonical_people_relative_output_dir
 from wiki2md.urls import resolve_wikipedia_url
 
 
@@ -19,7 +20,7 @@ def plan_batch_tasks(
         resolution = resolve_wikipedia_url(entry.url)
         if resolution.normalized_url in seen_urls:
             resolved_slug = entry.slug or resolution.slug
-            relative_output_dir = f"{entry.page_type}/{entry.output_group}/{resolved_slug}"
+            relative_output_dir = str(canonical_people_relative_output_dir(resolved_slug))
             duplicates.append(
                 DuplicateBatchEntry(
                     entry=entry,
@@ -31,7 +32,7 @@ def plan_batch_tasks(
             continue
 
         resolved_slug = entry.slug or resolution.slug
-        relative_output_dir = f"{entry.page_type}/{entry.output_group}/{resolved_slug}"
+        relative_output_dir = str(canonical_people_relative_output_dir(resolved_slug))
         if relative_output_dir in seen_output_dirs:
             duplicates.append(
                 DuplicateBatchEntry(
