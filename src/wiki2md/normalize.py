@@ -145,11 +145,17 @@ def _extract_node_reference_ids(node: Tag) -> list[str]:
     ids: list[str] = []
     seen: set[str] = set()
 
-    for anchor in node.select("sup.reference a[href], sup.mw-ref a[href], [rel~='dc:references'][href]"):
+    selector = "sup.reference a[href], sup.mw-ref a[href], [rel~='dc:references'][href]"
+
+    for anchor in node.select(selector):
         href = anchor.get("href", "")
-        if not href.startswith("#"):
+        parsed = urlparse(href)
+        if href.startswith("#"):
+            ref_id = href.removeprefix("#").strip()
+        elif not parsed.scheme and not parsed.netloc and parsed.fragment:
+            ref_id = parsed.fragment.strip()
+        else:
             continue
-        ref_id = href.removeprefix("#").strip()
         if not ref_id or ref_id in seen:
             continue
         seen.add(ref_id)

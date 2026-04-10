@@ -176,6 +176,42 @@ def test_normalize_article_collects_section_reference_ids() -> None:
     assert document.section_evidence[1].reference_ids == ["cite_note-2"]
 
 
+def test_normalize_article_collects_local_fragment_reference_ids() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            normalized_url="https://en.wikipedia.org/wiki/Geoffrey_Hinton",
+            lang="en",
+            title="Geoffrey_Hinton",
+            slug="geoffrey-hinton",
+        ),
+        canonical_title="Geoffrey Hinton",
+        html="""
+        <html>
+          <body>
+            <section data-mw-section-id="0">
+              <p>
+                Lead text.
+                <sup class="reference">
+                  <a href="./Geoffrey_Hinton#cite_note-1">[1]</a>
+                </sup>
+              </p>
+              <ol class="references">
+                <li id="cite_note-1">Lead reference.</li>
+              </ol>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert [section.heading for section in document.section_evidence] == ["Lead"]
+    assert document.section_evidence[0].reference_ids == ["cite_note-1"]
+
+
 def test_normalize_article_skips_sidebar_lists_inside_tables() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
