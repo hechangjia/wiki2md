@@ -9,6 +9,7 @@ from wiki2md.document import (
     ListBlock,
     ListItem,
     ParagraphBlock,
+    TableBlock,
 )
 from wiki2md.models import ArticleMetadata
 
@@ -51,17 +52,25 @@ def _render_list(items: Iterable[ListItem], ordered: bool) -> list[str]:
     return lines
 
 
-def _render_profile(document: Document, metadata: ArticleMetadata) -> list[str]:
-    if metadata.page_type != "person":
+def _render_table(block: TableBlock) -> list[str]:
+    if not block.rows:
         return []
 
-    if document.infobox is None or not document.infobox.fields:
-        return []
+    header_row = block.rows[0]
+    if header_row.header:
+        header = [cell.text for cell in header_row.cells]
+        body_rows = block.rows[1:]
+    else:
+        header = [f"Column {index}" for index, _ in enumerate(header_row.cells, start=1)]
+        body_rows = block.rows
 
-    lines = ["## Profile", ""]
-    for field in document.infobox.fields:
-        lines.append(f"- {field.label}: {field.text}")
-    lines.append("")
+    lines: list[str] = []
+    if block.caption:
+        lines.append(f"*{block.caption}*")
+    lines.append("| " + " | ".join(header) + " |")
+    lines.append("| " + " | ".join("---" for _ in header) + " |")
+    for row in body_rows:
+        lines.append("| " + " | ".join(cell.text for cell in row.cells) + " |")
     return lines
 
 
@@ -79,8 +88,6 @@ def render_markdown(
             if document.infobox.image.caption:
                 lines.append(f"*{document.infobox.image.caption}*")
             lines.append("")
-
-    lines.extend(_render_profile(document, metadata))
 
     for paragraph in document.summary:
         lines.append(paragraph)
@@ -105,6 +112,9 @@ def render_markdown(
                 if block.caption:
                     lines.append(f"*{block.caption}*")
                 lines.append("")
+        elif isinstance(block, TableBlock):
+            lines.extend(_render_table(block))
+            lines.append("")
 
     if document.references:
         lines.append("## References")

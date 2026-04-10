@@ -11,6 +11,9 @@ from wiki2md.document import (
     ListItem,
     ParagraphBlock,
     ReferenceEntry,
+    TableBlock,
+    TableCell,
+    TableRow,
 )
 from wiki2md.models import ArticleMetadata
 from wiki2md.render_markdown import render_markdown
@@ -83,11 +86,6 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
             "![Andrej Karpathy portrait](./assets/001-infobox.jpg)",
             "*Karpathy in 2024*",
             "",
-            "## Profile",
-            "",
-            "- Born: 3 October 1986 Bratislava, Czechoslovakia",
-            "- Occupation: Computer scientist",
-            "",
             "Andrej Karpathy is a computer scientist.[1]",
             "",
             "## Career",
@@ -106,7 +104,7 @@ def test_render_markdown_outputs_frontmatter_body_and_references() -> None:
     assert markdown == f"{expected_markdown}\n"
 
 
-def test_render_markdown_renders_infobox_image_and_profile_before_summary() -> None:
+def test_render_markdown_renders_infobox_image_before_summary() -> None:
     document = Document(
         title="Andrej Karpathy",
         infobox=InfoboxData(
@@ -136,12 +134,8 @@ def test_render_markdown_renders_infobox_image_and_profile_before_summary() -> N
     )
 
     assert "# Andrej Karpathy\n\n![Andrej Karpathy portrait](./assets/001-infobox.jpg)" in markdown
-    assert (
-        "## Profile\n\n"
-        "- Born: 3 October 1986 Bratislava, Czechoslovakia\n"
-        "- Occupation: Computer scientist\n\n"
-        "Andrej Karpathy is a Slovak-Canadian computer scientist."
-    ) in markdown
+    assert "## Profile" not in markdown
+    assert "Andrej Karpathy is a Slovak-Canadian computer scientist." in markdown
 
 
 def test_render_markdown_omits_profile_section_when_infobox_has_no_fields() -> None:
@@ -170,13 +164,13 @@ def test_render_markdown_omits_profile_section_when_infobox_has_no_fields() -> N
     assert "## Profile" not in markdown
 
 
-def test_render_markdown_skips_profile_for_non_person_pages() -> None:
+def test_render_markdown_does_not_emit_profile_section_for_person_pages() -> None:
     document = Document(
         title="Andrej Karpathy",
         infobox=InfoboxData(
             title="Andrej Karpathy",
             image=None,
-            fields=[InfoboxField(label="Type", text="Example", links=[])],
+            fields=[InfoboxField(label="Occupation", text="Example", links=[])],
         ),
         summary=["Example summary."],
     )
@@ -187,15 +181,47 @@ def test_render_markdown_skips_profile_for_non_person_pages() -> None:
         {},
     )
 
-    assert "## Profile" in markdown
+    assert "## Profile" not in markdown
+    assert "- Occupation: Example" not in markdown
+
+
+def test_render_markdown_renders_table_blocks() -> None:
+    document = Document(
+        title="Linux",
+        summary=["Linux is a family of Unix-like operating systems."],
+        blocks=[
+            TableBlock(
+                caption="Supported platforms",
+                rows=[
+                    TableRow(
+                        header=True,
+                        cells=[TableCell(text="Architecture"), TableCell(text="Status")],
+                    ),
+                    TableRow(
+                        header=False,
+                        cells=[TableCell(text="x86-64"), TableCell(text="Supported")],
+                    ),
+                ],
+            )
+        ],
+    )
 
     markdown = render_markdown(
         document,
-        build_metadata().model_copy(update={"page_type": "concept"}),
+        build_metadata().model_copy(
+            update={
+                "title": "Linux",
+                "source_url": "https://en.wikipedia.org/wiki/Linux",
+                "page_type": "article",
+            }
+        ),
         {},
     )
 
     assert "## Profile" not in markdown
+    assert "*Supported platforms*" in markdown
+    assert "| Architecture | Status |" in markdown
+    assert "| x86-64 | Supported |" in markdown
 
 
 def test_render_markdown_includes_batch_frontmatter_fields() -> None:
