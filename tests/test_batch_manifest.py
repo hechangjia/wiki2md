@@ -8,15 +8,15 @@ from wiki2md.errors import BatchManifestValidationError
 
 
 def test_load_manifest_entries_from_txt_defaults_metadata(tmp_path: Path) -> None:
-    manifest = tmp_path / "people.txt"
-    manifest.write_text("https://en.wikipedia.org/wiki/Andrej_Karpathy\n", encoding="utf-8")
+    manifest = tmp_path / "articles.txt"
+    manifest.write_text("https://en.wikipedia.org/wiki/Linux\n", encoding="utf-8")
 
     entries, invalid_rows = load_manifest_entries(manifest, skip_invalid=False)
 
     assert invalid_rows == []
     assert len(entries) == 1
-    assert entries[0].url.endswith("/wiki/Andrej_Karpathy")
-    assert entries[0].page_type == "person"
+    assert entries[0].url.endswith("/wiki/Linux")
+    assert entries[0].page_type is None
     assert entries[0].output_group == "default"
     assert entries[0].tags == []
 

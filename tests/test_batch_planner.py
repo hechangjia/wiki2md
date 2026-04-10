@@ -60,3 +60,18 @@ def test_plan_batch_tasks_treats_different_output_groups_as_one_canonical_slug()
     assert len(tasks) == 1
     assert len(duplicates) == 1
     assert duplicates[0].relative_output_dir == "people/geoffrey-hinton"
+
+
+def test_plan_batch_tasks_keeps_people_output_root_for_generic_entries() -> None:
+    tasks, duplicates = plan_batch_tasks(
+        [
+            BatchManifestEntry(
+                url="https://en.wikipedia.org/wiki/Linux",
+                page_type=None,
+            )
+        ],
+        output_root=Path("output"),
+    )
+
+    assert duplicates == []
+    assert tasks[0].relative_output_dir == "people/linux"

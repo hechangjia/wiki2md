@@ -1,6 +1,5 @@
 from pathlib import Path
 from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from wiki2md.models import UrlResolution
@@ -27,7 +26,7 @@ class BatchManifestEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     url: str
-    page_type: Literal["person"] = "person"
+    page_type: str | None = None
     slug: str | None = None
     tags: list[str] = Field(default_factory=list)
     output_group: str = "default"
