@@ -9,6 +9,7 @@ from wiki2md.document import (
     ParagraphBlock,
     ReferenceEntry,
     ReferenceLink,
+    SectionEvidence,
 )
 from wiki2md.models import ConversionContext, ConversionResult, SelectedAsset
 from wiki2md.service import Wiki2MdService
@@ -231,3 +232,39 @@ def test_convert_url_derives_resolved_slug_from_relative_output_dir(
 
     payload = json.loads(Path(result.meta_path).read_text(encoding="utf-8"))
     assert payload["resolved_slug"] == "custom-slug"
+
+
+def test_convert_url_writes_section_evidence_artifacts(monkeypatch, tmp_path: Path) -> None:
+    service = Wiki2MdService(client=FakeClient(), output_root=tmp_path / "output")
+    document = Document(
+        title="Example",
+        summary=["Lead."],
+        section_evidence=[
+            SectionEvidence(
+                section_id="career",
+                heading="Career",
+                level=2,
+                paragraph_count=1,
+                reference_ids=[],
+                reference_count=0,
+                primary_urls=[],
+                sources=[],
+            )
+        ],
+    )
+    monkeypatch.setattr("wiki2md.service.normalize_article", lambda article: document)
+    monkeypatch.setattr("wiki2md.service.select_assets", lambda document, media: [])
+    monkeypatch.setattr(
+        "wiki2md.service.download_assets",
+        lambda assets, destination, user_agent: None,
+    )
+    monkeypatch.setattr(
+        "wiki2md.service.render_markdown",
+        lambda document, metadata, asset_map: "# Example\n",
+    )
+
+    result = service.convert_url("https://en.wikipedia.org/wiki/Example")
+
+    bundle_dir = Path(result.output_dir)
+    assert (bundle_dir / "section_evidence.json").exists()
+    assert (bundle_dir / "sources.md").exists()

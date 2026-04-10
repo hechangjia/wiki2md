@@ -2,7 +2,7 @@ import json
 import shutil
 from pathlib import Path
 
-from wiki2md.document import InfoboxData, ReferenceEntry
+from wiki2md.document import InfoboxData, ReferenceEntry, SectionEvidence
 from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, ConversionResult, UrlResolution
 
@@ -37,6 +37,8 @@ def write_bundle(
     infobox: InfoboxData | None,
     staging_assets_dir: Path,
     overwrite: bool,
+    section_evidence: list[SectionEvidence] | None = None,
+    sources_markdown: str | None = None,
 ) -> ConversionResult:
     relative_output_dir = normalize_relative_output_dir(relative_output_dir)
     final_dir = output_root / relative_output_dir
@@ -56,6 +58,8 @@ def write_bundle(
     meta_path = temp_dir / "meta.json"
     references_path = temp_dir / "references.json"
     infobox_path = temp_dir / "infobox.json"
+    section_evidence_path = temp_dir / "section_evidence.json"
+    sources_path = temp_dir / "sources.md"
     assets_path = temp_dir / "assets"
 
     article_path.write_text(markdown, encoding="utf-8")
@@ -79,6 +83,21 @@ def write_bundle(
         json.dumps(infobox_payload, indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
+    section_evidence_path.write_text(
+        json.dumps(
+            {
+                "title": metadata.title,
+                "sections": [
+                    section.model_dump(mode="json") for section in (section_evidence or [])
+                ],
+            },
+            indent=2,
+            ensure_ascii=False,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sources_path.write_text(sources_markdown or "", encoding="utf-8")
 
     if staging_assets_dir.exists():
         shutil.copytree(staging_assets_dir, assets_path)

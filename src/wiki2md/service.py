@@ -9,6 +9,7 @@ from wiki2md.document import Document
 from wiki2md.models import ArticleMetadata, ConversionContext, ConversionResult, InspectionResult
 from wiki2md.normalize import normalize_article
 from wiki2md.render_markdown import render_markdown
+from wiki2md.render_sources import render_sources_markdown
 from wiki2md.urls import resolve_wikipedia_url
 from wiki2md.writer import normalize_relative_output_dir, write_bundle
 
@@ -104,6 +105,7 @@ class Wiki2MdService:
                 metadata,
                 asset_map,
             )
+            sources_markdown = render_sources_markdown(document.title, document.section_evidence)
 
             return write_bundle(
                 output_root=self.output_root,
@@ -115,6 +117,8 @@ class Wiki2MdService:
                 infobox=document.infobox,
                 staging_assets_dir=staging_assets_dir,
                 overwrite=overwrite,
+                section_evidence=document.section_evidence,
+                sources_markdown=sources_markdown,
             )
         finally:
             shutil.rmtree(staging_root, ignore_errors=True)

@@ -4,7 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from wiki2md.document import InfoboxData, InfoboxField, ReferenceEntry, ReferenceLink
+from wiki2md.document import (
+    InfoboxData,
+    InfoboxField,
+    ReferenceEntry,
+    ReferenceLink,
+    SectionEvidence,
+    SectionEvidenceSource,
+)
 from wiki2md.errors import WriteError
 from wiki2md.models import ArticleMetadata, UrlResolution
 from wiki2md.writer import write_bundle
@@ -214,6 +221,63 @@ def test_write_bundle_serializes_reference_primary_urls(tmp_path: Path) -> None:
             ],
         }
     ]
+
+
+def test_write_bundle_writes_section_evidence_and_sources(tmp_path: Path) -> None:
+    staging_assets = tmp_path / "assets"
+    staging_assets.mkdir()
+
+    resolution = UrlResolution(
+        source_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        normalized_url="https://en.wikipedia.org/wiki/Andrej_Karpathy",
+        lang="en",
+        title="Andrej_Karpathy",
+        slug="andrej-karpathy",
+    )
+    metadata = ArticleMetadata(
+        title="Andrej Karpathy",
+        source_url=resolution.source_url,
+        source_lang="en",
+        retrieved_at=datetime(2026, 4, 10, tzinfo=UTC),
+    )
+
+    result = write_bundle(
+        output_root=tmp_path / "output",
+        relative_output_dir=Path("person/default/example"),
+        resolution=resolution,
+        markdown="# Example\n",
+        metadata=metadata,
+        references=[],
+        infobox=None,
+        section_evidence=[
+            SectionEvidence(
+                section_id="career",
+                heading="Career",
+                level=2,
+                paragraph_count=1,
+                reference_ids=["cite_note-2"],
+                reference_count=1,
+                primary_urls=["https://example.com/source"],
+                sources=[
+                    SectionEvidenceSource(
+                        id="cite_note-2",
+                        text="Example source.",
+                        primary_url="https://example.com/source",
+                        link_kinds=["external"],
+                    )
+                ],
+            )
+        ],
+        sources_markdown="# Sources for Example\n",
+        staging_assets_dir=staging_assets,
+        overwrite=False,
+    )
+
+    bundle_dir = Path(result.output_dir)
+    assert (bundle_dir / "section_evidence.json").exists()
+    assert (bundle_dir / "sources.md").read_text(encoding="utf-8").startswith(
+        "# Sources for Example"
+    )
 
 
 def test_write_bundle_does_not_leave_temp_dir_when_output_exists(tmp_path: Path) -> None:
