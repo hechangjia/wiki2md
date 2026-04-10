@@ -274,6 +274,45 @@ def test_normalize_article_skips_template_control_fragments() -> None:
     ]
 
 
+def test_normalize_article_preserves_short_real_list_items() -> None:
+    article = FetchedArticle(
+        resolution=UrlResolution(
+            source_url="https://en.wikipedia.org/wiki/Example",
+            normalized_url="https://en.wikipedia.org/wiki/Example",
+            lang="en",
+            title="Example",
+            slug="example",
+        ),
+        canonical_title="Example",
+        html="""
+        <html>
+          <body>
+            <section data-mw-section-id="0">
+              <p>Example lead.</p>
+              <h2>Career</h2>
+              <ul>
+                <li>AI</li>
+                <li>EVs</li>
+              </ul>
+            </section>
+          </body>
+        </html>
+        """,
+        media=[],
+    )
+
+    document = normalize_article(article)
+
+    assert document.summary == ["Example lead."]
+    assert document.blocks == [
+        HeadingBlock(level=2, text="Career"),
+        ListBlock(
+            ordered=False,
+            items=[ListItem(text="AI"), ListItem(text="EVs")],
+        ),
+    ]
+
+
 def test_normalize_article_strips_inline_citation_markers_from_prose() -> None:
     article = FetchedArticle(
         resolution=UrlResolution(
