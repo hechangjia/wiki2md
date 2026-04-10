@@ -55,6 +55,38 @@ _PORTRAIT_LABELS = {
     "圖片",
 }
 
+_MONTH_NAMES = (
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+)
+_TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
+
+_MONTH_NAMES = (
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+)
+_TEMPLATE_CONTROL_TEXTS = {"v", "t", "e", "vte"}
+
 
 def _is_cjk(char: str) -> bool:
     return bool(_CJK_CHAR_RE.fullmatch(char))
@@ -110,6 +142,30 @@ def _clean_prose_text(node: Tag) -> str:
         reference.decompose()
 
     return _clean_text(clone)
+
+
+def _looks_like_orphan_date(text: str) -> bool:
+    normalized = " ".join(text.split()).casefold()
+    if not normalized or "," not in normalized:
+        return False
+    return any(normalized.startswith(f"{month} ") for month in _MONTH_NAMES)
+
+
+def _is_template_control_text(text: str) -> bool:
+    normalized = re.sub(r"\s+", "", text).casefold()
+    return normalized in _TEMPLATE_CONTROL_TEXTS
+
+
+def _looks_like_orphan_date(text: str) -> bool:
+    normalized = " ".join(text.split()).casefold()
+    if not normalized or "," not in normalized:
+        return False
+    return any(normalized.startswith(f"{month} ") for month in _MONTH_NAMES)
+
+
+def _is_template_control_text(text: str) -> bool:
+    normalized = re.sub(r"\s+", "", text).casefold()
+    return normalized in _TEMPLATE_CONTROL_TEXTS
 
 
 def _normalize_href(article: FetchedArticle, href: str) -> str:
@@ -363,11 +419,12 @@ def normalize_article(article: FetchedArticle) -> Document:
 
         if node.name == "p":
             text = _clean_prose_text(node)
-            if text:
-                if in_lead:
-                    document.summary.append(text)
-                else:
-                    document.blocks.append(ParagraphBlock(text=text))
+            if not text or _looks_like_orphan_date(text):
+                continue
+            if in_lead:
+                document.summary.append(text)
+            else:
+                document.blocks.append(ParagraphBlock(text=text))
         elif node.name in {"h2", "h3"}:
             heading_text = _clean_text(node)
             if _is_references_heading(heading_text, article.resolution.lang):
@@ -381,7 +438,7 @@ def normalize_article(article: FetchedArticle) -> Document:
             items = []
             for item in node.find_all("li", recursive=False):
                 text = _clean_prose_text(item)
-                if not text:
+                if not text or _is_template_control_text(text):
                     continue
                 items.append(
                     ListItem(
